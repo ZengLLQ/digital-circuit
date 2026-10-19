@@ -1,19 +1,30 @@
 use crate::models::TruthTableRow;
 
+pub fn get_default_variable_names(num_vars: usize) -> Vec<String> {
+    (1..=num_vars).map(|i| format!("IN{}", i)).collect()
+}
+
 pub fn get_variable_names(num_vars: usize) -> Vec<String> {
-    match num_vars {
-        2 => vec!["A".to_string(), "B".to_string()],
-        3 => vec!["A".to_string(), "B".to_string(), "C".to_string()],
-        4 => vec![
-            "A".to_string(),
-            "B".to_string(),
-            "C".to_string(),
-            "D".to_string(),
-        ],
-        _ => (0..num_vars)
-            .map(|i| ((b'A' + i as u8) as char).to_string())
-            .collect(),
+    get_default_variable_names(num_vars)
+}
+
+pub fn resolve_variable_names(num_vars: usize, custom_names: Option<&[String]>) -> Vec<String> {
+    let defaults = get_default_variable_names(num_vars);
+    if let Some(custom) = custom_names {
+        if custom.len() == num_vars {
+            let mut resolved = Vec::with_capacity(num_vars);
+            for (i, name) in custom.iter().enumerate() {
+                let trimmed = name.trim();
+                if trimmed.is_empty() {
+                    resolved.push(defaults[i].clone());
+                } else {
+                    resolved.push(trimmed.to_string());
+                }
+            }
+            return resolved;
+        }
     }
+    defaults
 }
 
 pub fn generate_truth_table(num_vars: usize, outputs: Option<&[String]>) -> Vec<TruthTableRow> {
@@ -80,9 +91,12 @@ mod tests {
 
     #[test]
     fn test_variable_names() {
-        assert_eq!(get_variable_names(2), vec!["A", "B"]);
-        assert_eq!(get_variable_names(3), vec!["A", "B", "C"]);
-        assert_eq!(get_variable_names(4), vec!["A", "B", "C", "D"]);
+        assert_eq!(get_variable_names(2), vec!["IN1", "IN2"]);
+        assert_eq!(get_variable_names(3), vec!["IN1", "IN2", "IN3"]);
+        assert_eq!(get_variable_names(4), vec!["IN1", "IN2", "IN3", "IN4"]);
+
+        let custom = vec!["X".to_string(), "Y".to_string()];
+        assert_eq!(resolve_variable_names(2, Some(&custom)), vec!["X", "Y"]);
     }
 
     #[test]

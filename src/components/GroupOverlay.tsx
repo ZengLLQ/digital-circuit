@@ -75,20 +75,14 @@ export const GroupOverlay: React.FC<GroupOverlayProps> = ({
 
         // Slight inset offset per group index so concentric groups don't perfectly overlap
         const inset = 3 + (gIdx % 3) * 2;
-        const strokeWidth = isHighlighted ? 3.5 : 2;
-        const opacity = hasOtherHighlighted ? 0.25 : 1.0;
+        const strokeWidth = isHighlighted ? 3.5 : 2.5;
+        const opacity = hasOtherHighlighted ? 0.3 : 1.0;
 
         return (
           <g
             key={group.id}
-            className="transition-all duration-150 pointer-events-auto cursor-pointer"
+            className="transition-all duration-150 pointer-events-none"
             opacity={opacity}
-            onMouseEnter={() => onHoverGroup(group.id)}
-            onMouseLeave={() => onHoverGroup(null)}
-            onClick={(e) => {
-              e.stopPropagation();
-              onSelectGroup(selectedGroupId === group.id ? null : group.id);
-            }}
           >
             {group.rects.map((rect, rIdx) => {
               const x = rect.c_start * (cellSize + gapSize) + inset;
@@ -98,11 +92,22 @@ export const GroupOverlay: React.FC<GroupOverlayProps> = ({
               const h =
                 rect.r_span * cellSize + (rect.r_span - 1) * gapSize - inset * 2;
 
-              const rx = Math.min(14, w / 3, h / 3);
+              // Render true rounded loops (auto circle / stadium pill contour)
+              const isPillOrCircle = rect.r_span === 1 || rect.c_span === 1;
+              const rx = isPillOrCircle
+                ? Math.min(w / 2, h / 2)
+                : Math.min(24, w / 2, h / 2);
+
+              // Position badge on primary segment at bottom-right of the rectangle
+              // to prevent overlapping m{minterm} (top-left) and binary (top-right)
+              const badgeW = 24;
+              const badgeH = 16;
+              const badgeX = x + w - badgeW - 5;
+              const badgeY = y + h - badgeH - 5;
 
               return (
                 <g key={`${group.id}-rect-${rIdx}`}>
-                  {/* Visual group contour */}
+                  {/* Visual group contour - pointerEvents none ensures cell clicks work 100% */}
                   <rect
                     x={x}
                     y={y}
@@ -116,31 +121,44 @@ export const GroupOverlay: React.FC<GroupOverlayProps> = ({
                     strokeDasharray={
                       group.rects.length > 1 ? "6 3" : undefined
                     }
-                    filter={isHighlighted ? `url(#glow-${group.id})` : undefined}
+                    filter={`url(#glow-${group.id})`}
+                    style={{ pointerEvents: "none" }}
                   />
 
-                  {/* Group ID badge on primary and wraparound/corner segments */}
-                  <g transform={`translate(${x + 4}, ${y + 4})`}>
-                    <rect
-                      width="24"
-                      height="16"
-                      rx="4"
-                      fill={color.badgeBg}
-                      className="shadow-xs"
-                      opacity={rIdx === 0 ? 1.0 : 0.85}
-                    />
-                    <text
-                      x="12"
-                      y="11.5"
-                      fill={color.badgeText}
-                      fontSize="9"
-                      fontWeight="700"
-                      fontFamily="Inter, -apple-system, BlinkMacSystemFont, sans-serif"
-                      textAnchor="middle"
+                  {/* Group ID badge rendered on primary segment only */}
+                  {rIdx === 0 && (
+                    <g
+                      transform={`translate(${badgeX}, ${badgeY})`}
+                      className="pointer-events-auto cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelectGroup(selectedGroupId === group.id ? null : group.id);
+                      }}
+                      onMouseEnter={() => onHoverGroup(group.id)}
+                      onMouseLeave={() => onHoverGroup(null)}
                     >
-                      {group.id}
-                    </text>
-                  </g>
+                      <rect
+                        width={badgeW}
+                        height={badgeH}
+                        rx="4"
+                        fill={color.badgeBg}
+                        stroke={isHighlighted ? "#ffffff" : color.border}
+                        strokeWidth={isHighlighted ? 1.5 : 0.5}
+                        className="shadow-md"
+                      />
+                      <text
+                        x={badgeW / 2}
+                        y="11.5"
+                        fill={color.badgeText}
+                        fontSize="9"
+                        fontWeight="700"
+                        fontFamily="Inter, -apple-system, BlinkMacSystemFont, sans-serif"
+                        textAnchor="middle"
+                      >
+                        {group.id}
+                      </text>
+                    </g>
+                  )}
                 </g>
               );
             })}

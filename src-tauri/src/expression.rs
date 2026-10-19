@@ -7,9 +7,11 @@ pub fn build_sop_result(
     num_vars: usize,
     on_terms: &[usize],
     dc_terms: &[usize],
+    var_names: Option<&[String]>,
 ) -> MinimizationResult {
     let total_cells = 1 << num_vars;
-    let var_names = get_variable_names(num_vars);
+    let defaults = get_variable_names(num_vars);
+    let resolved_vars = var_names.unwrap_or(&defaults);
 
     if dc_terms.len() == total_cells {
         return MinimizationResult {
@@ -54,7 +56,7 @@ pub fn build_sop_result(
             covered_minterms: (0..total_cells).collect(),
             rects: implicant_to_rects(num_vars, 0, 0),
             is_essential: true,
-            eliminated_vars: var_names.clone(),
+            eliminated_vars: resolved_vars.to_vec(),
             retained_vars: Vec::new(),
             explanation: format!(
                 "Universal group of all {} cells covers the entire map, eliminating all variables to yield constant 1.",
@@ -79,7 +81,7 @@ pub fn build_sop_result(
 
     for (idx, term) in solution.selected_implicants.iter().enumerate() {
         let is_essential = solution.essential_indices.contains(&idx);
-        let group = format_sop_group(idx, term, num_vars, &var_names, is_essential);
+        let group = format_sop_group(idx, term, num_vars, resolved_vars, is_essential);
         total_literals += term.literal_count();
         groups.push(group);
     }
@@ -120,9 +122,11 @@ pub fn build_pos_result(
     num_vars: usize,
     off_terms: &[usize], // where F = 0
     dc_terms: &[usize],  // where F = X
+    var_names: Option<&[String]>,
 ) -> MinimizationResult {
     let total_cells = 1 << num_vars;
-    let var_names = get_variable_names(num_vars);
+    let defaults = get_variable_names(num_vars);
+    let resolved_vars = var_names.unwrap_or(&defaults);
 
     if dc_terms.len() == total_cells {
         // Documented deterministic convention: all unspecified cells evaluate to F = 0
@@ -169,7 +173,7 @@ pub fn build_pos_result(
             covered_minterms: (0..total_cells).collect(),
             rects: implicant_to_rects(num_vars, 0, 0),
             is_essential: true,
-            eliminated_vars: var_names.clone(),
+            eliminated_vars: resolved_vars.to_vec(),
             retained_vars: Vec::new(),
             explanation: format!(
                 "Universal zero-group covering all {} cells eliminates all variables to yield constant 0.",
@@ -194,7 +198,7 @@ pub fn build_pos_result(
 
     for (idx, term) in solution.selected_implicants.iter().enumerate() {
         let is_essential = solution.essential_indices.contains(&idx);
-        let group = format_pos_group(idx, term, num_vars, &var_names, is_essential);
+        let group = format_pos_group(idx, term, num_vars, resolved_vars, is_essential);
         total_literals += term.literal_count();
         groups.push(group);
     }
@@ -238,8 +242,8 @@ fn format_sop_group(
     var_names: &[String],
     is_essential: bool,
 ) -> ImplicantGroup {
-    let mut term_formatted = String::new();
-    let mut term_plain = String::new();
+    let mut parts_formatted = Vec::new();
+    let mut parts_plain = Vec::new();
     let mut eliminated_vars = Vec::new();
     let mut retained_vars = Vec::new();
 
@@ -250,18 +254,22 @@ fn format_sop_group(
 
         if is_active {
             if bit_val == 1 {
-                term_formatted.push_str(var_name);
-                term_plain.push_str(var_name);
+                parts_formatted.push(var_name.clone());
+                parts_plain.push(var_name.clone());
                 retained_vars.push(format!("{}=1", var_name));
             } else {
-                term_formatted.push_str(&format!("{}′", var_name));
-                term_plain.push_str(&format!("{}'", var_name));
+                parts_formatted.push(format!("{}′", var_name));
+                parts_plain.push(format!("{}'", var_name));
                 retained_vars.push(format!("{}=0", var_name));
             }
         } else {
             eliminated_vars.push(var_name.clone());
         }
     }
+
+    let sep = if var_names.iter().any(|v| v.len() > 1) { " " } else { "" };
+    let term_formatted = parts_formatted.join(sep);
+    let term_plain = parts_plain.join(sep);
 
     let rects = implicant_to_rects(num_vars, term.mask, term.value);
     let size = term.minterms.len();
@@ -412,42 +420,46 @@ mod tests {
     #[test]
     fn test_sop_and_pos_simple() {
         // 2-var OR function: m(1, 2, 3), off: m(0)
-        // SoP: A + B
-        // PoS: (A + B)
-        let sop = build_sop_result(2, &[1, 2, 3], &[]);
+        // Default: IN1, IN2
+        let sop = build_sop_result(2, &[1, 2, 3], &[], None);
         assert_eq!(sop.term_count, 2);
         assert_eq!(sop.literal_count, 2);
 
-        let pos = build_pos_result(2, &[0], &[]);
+        let pos = build_pos_result(2, &[0], &[], None);
         assert_eq!(pos.term_count, 1);
-        assert_eq!(pos.expression_plain, "(A + B)");
+        assert_eq!(pos.expression_plain, "(IN1 + IN2)");
+
+        // Custom variable names: A, B
+        let custom_vars = vec!["A".to_string(), "B".to_string()];
+        let pos_custom = build_pos_result(2, &[0], &[], Some(&custom_vars));
+        assert_eq!(pos_custom.expression_plain, "(A + B)");
     }
 
     #[test]
     fn test_constant_functions() {
-        let sop_0 = build_sop_result(2, &[], &[]);
+        let sop_0 = build_sop_result(2, &[], &[], None);
         assert!(sop_0.is_constant_zero);
         assert_eq!(sop_0.expression_formatted, "0");
 
-        let sop_1 = build_sop_result(2, &[0, 1, 2, 3], &[]);
+        let sop_1 = build_sop_result(2, &[0, 1, 2, 3], &[], None);
         assert!(sop_1.is_constant_one);
         assert_eq!(sop_1.expression_formatted, "1");
 
-        let pos_1 = build_pos_result(2, &[], &[]);
+        let pos_1 = build_pos_result(2, &[], &[], None);
         assert!(pos_1.is_constant_one);
         assert_eq!(pos_1.expression_formatted, "1");
 
-        let pos_0 = build_pos_result(2, &[0, 1, 2, 3], &[]);
+        let pos_0 = build_pos_result(2, &[0, 1, 2, 3], &[], None);
         assert!(pos_0.is_constant_zero);
         assert_eq!(pos_0.expression_formatted, "0");
 
         // All don't care: deterministic convention F = 0
-        let sop_dc = build_sop_result(2, &[], &[0, 1, 2, 3]);
+        let sop_dc = build_sop_result(2, &[], &[0, 1, 2, 3], None);
         assert!(sop_dc.is_all_dont_care);
         assert!(sop_dc.is_constant_zero);
         assert_eq!(sop_dc.expression_formatted, "0");
 
-        let pos_dc = build_pos_result(2, &[], &[0, 1, 2, 3]);
+        let pos_dc = build_pos_result(2, &[], &[0, 1, 2, 3], None);
         assert!(pos_dc.is_all_dont_care);
         assert!(pos_dc.is_constant_zero);
         assert_eq!(pos_dc.expression_formatted, "0");

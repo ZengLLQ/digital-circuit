@@ -1,11 +1,19 @@
 use crate::models::{GroupRect, KMapCell, KMapGrid, TruthTableRow};
+use crate::truth_table::get_default_variable_names;
 
-pub fn build_kmap_grid(num_vars: usize, truth_table: &[TruthTableRow]) -> KMapGrid {
+pub fn build_kmap_grid(
+    num_vars: usize,
+    truth_table: &[TruthTableRow],
+    var_names: Option<&[String]>,
+) -> KMapGrid {
+    let defaults = get_default_variable_names(num_vars);
+    let resolved_vars = var_names.unwrap_or(&defaults);
+
     match num_vars {
-        2 => build_2var_grid(truth_table),
-        3 => build_3var_grid(truth_table),
-        4 => build_4var_grid(truth_table),
-        _ => build_2var_grid(truth_table),
+        2 => build_2var_grid(truth_table, resolved_vars),
+        3 => build_3var_grid(truth_table, resolved_vars),
+        4 => build_4var_grid(truth_table, resolved_vars),
+        _ => build_2var_grid(truth_table, resolved_vars),
     }
 }
 
@@ -17,17 +25,21 @@ fn get_output_for_minterm(truth_table: &[TruthTableRow], m: usize) -> String {
         .unwrap_or_else(|| "0".to_string())
 }
 
-fn build_2var_grid(truth_table: &[TruthTableRow]) -> KMapGrid {
-    let row_vars = vec!["A".to_string()];
-    let col_vars = vec!["B".to_string()];
+// 2 var: Karnaugh map: IN2 \ IN1
+// Rows: IN2 (bit 0), Cols: IN1 (bit 1)
+fn build_2var_grid(truth_table: &[TruthTableRow], var_names: &[String]) -> KMapGrid {
+    let row_vars = vec![var_names[1].clone()];
+    let col_vars = vec![var_names[0].clone()];
     let row_headers = vec!["0".to_string(), "1".to_string()];
     let col_headers = vec!["0".to_string(), "1".to_string()];
 
     let mut cells = Vec::new();
     for r in 0..2 {
+        let row_val = r; // IN2
         let mut row_cells = Vec::new();
         for c in 0..2 {
-            let minterm = (r << 1) | c;
+            let col_val = c; // IN1
+            let minterm = (col_val << 1) | row_val;
             let binary = format!("{:02b}", minterm);
             let output = get_output_for_minterm(truth_table, minterm);
             row_cells.push(KMapCell {
@@ -51,25 +63,29 @@ fn build_2var_grid(truth_table: &[TruthTableRow]) -> KMapGrid {
     }
 }
 
-fn build_3var_grid(truth_table: &[TruthTableRow]) -> KMapGrid {
-    let row_vars = vec!["A".to_string()];
-    let col_vars = vec!["B".to_string(), "C".to_string()];
-    let row_headers = vec!["0".to_string(), "1".to_string()];
-    let col_headers = vec![
+// 3 var: Karnaugh map: IN2 IN3 \ IN1
+// Rows: IN2 IN3 (bits 1, 0) - 4 rows (00, 01, 11, 10)
+// Cols: IN1 (bit 2) - 2 cols (0, 1)
+fn build_3var_grid(truth_table: &[TruthTableRow], var_names: &[String]) -> KMapGrid {
+    let row_vars = vec![var_names[1].clone(), var_names[2].clone()];
+    let col_vars = vec![var_names[0].clone()];
+    let row_headers = vec![
         "00".to_string(),
         "01".to_string(),
         "11".to_string(),
         "10".to_string(),
     ];
+    let col_headers = vec!["0".to_string(), "1".to_string()];
 
-    let col_values = [0b00, 0b01, 0b11, 0b10];
+    let gray_values = [0b00, 0b01, 0b11, 0b10];
 
     let mut cells = Vec::new();
-    for r in 0..2 {
+    for r in 0..4 {
+        let row_val = gray_values[r]; // bits 1, 0 (IN2, IN3)
         let mut row_cells = Vec::new();
-        for c in 0..4 {
-            let bc = col_values[c];
-            let minterm = (r << 2) | bc;
+        for c in 0..2 {
+            let col_val = c; // bit 2 (IN1)
+            let minterm = (col_val << 2) | row_val;
             let binary = format!("{:03b}", minterm);
             let output = get_output_for_minterm(truth_table, minterm);
             row_cells.push(KMapCell {
@@ -93,9 +109,12 @@ fn build_3var_grid(truth_table: &[TruthTableRow]) -> KMapGrid {
     }
 }
 
-fn build_4var_grid(truth_table: &[TruthTableRow]) -> KMapGrid {
-    let row_vars = vec!["A".to_string(), "B".to_string()];
-    let col_vars = vec!["C".to_string(), "D".to_string()];
+// 4 var: Karnaugh map: IN3 IN4 \ IN1 IN2
+// Rows: IN3 IN4 (bits 1, 0) - 4 rows (00, 01, 11, 10)
+// Cols: IN1 IN2 (bits 3, 2) - 4 cols (00, 01, 11, 10)
+fn build_4var_grid(truth_table: &[TruthTableRow], var_names: &[String]) -> KMapGrid {
+    let row_vars = vec![var_names[2].clone(), var_names[3].clone()];
+    let col_vars = vec![var_names[0].clone(), var_names[1].clone()];
     let row_headers = vec![
         "00".to_string(),
         "01".to_string(),
@@ -113,11 +132,11 @@ fn build_4var_grid(truth_table: &[TruthTableRow]) -> KMapGrid {
 
     let mut cells = Vec::new();
     for r in 0..4 {
-        let ab = gray_values[r];
+        let row_val = gray_values[r]; // bits 1, 0 (IN3, IN4)
         let mut row_cells = Vec::new();
         for c in 0..4 {
-            let cd = gray_values[c];
-            let minterm = (ab << 2) | cd;
+            let col_val = gray_values[c]; // bits 3, 2 (IN1, IN2)
+            let minterm = (col_val << 2) | row_val;
             let binary = format!("{:04b}", minterm);
             let output = get_output_for_minterm(truth_table, minterm);
             row_cells.push(KMapCell {
@@ -143,24 +162,24 @@ fn build_4var_grid(truth_table: &[TruthTableRow]) -> KMapGrid {
 
 // Convert an implicant (mask & value) to visual group rectangles on the K-Map grid
 // Bit positions:
-// 2-var: bit 1 = A, bit 0 = B
-// 3-var: bit 2 = A, bit 1 = B, bit 0 = C
-// 4-var: bit 3 = A, bit 2 = B, bit 1 = C, bit 0 = D
+// 2-var: bit 1 = IN1 (Col), bit 0 = IN2 (Row)
+// 3-var: bit 2 = IN1 (Col), bit 1 = IN2 (Row high), bit 0 = IN3 (Row low)
+// 4-var: bit 3 = IN1 (Col high), bit 2 = IN2 (Col low), bit 1 = IN3 (Row high), bit 0 = IN4 (Row low)
 pub fn implicant_to_rects(num_vars: usize, mask: u8, value: u8) -> Vec<GroupRect> {
     match num_vars {
         2 => {
-            // Row A (bit 1)
-            let (r_start, r_span) = if (mask & 2) != 0 {
-                let a = (value >> 1) & 1;
-                (a as usize, 1)
+            // Row IN2 (bit 0)
+            let (r_start, r_span) = if (mask & 1) != 0 {
+                let in2 = value & 1;
+                (in2 as usize, 1)
             } else {
                 (0, 2)
             };
 
-            // Col B (bit 0)
-            let (c_start, c_span) = if (mask & 1) != 0 {
-                let b = value & 1;
-                (b as usize, 1)
+            // Col IN1 (bit 1)
+            let (c_start, c_span) = if (mask & 2) != 0 {
+                let in1 = (value >> 1) & 1;
+                (in1 as usize, 1)
             } else {
                 (0, 2)
             };
@@ -174,78 +193,23 @@ pub fn implicant_to_rects(num_vars: usize, mask: u8, value: u8) -> Vec<GroupRect
             }]
         }
         3 => {
-            // Row A (bit 2)
-            let (r_start, r_span) = if (mask & 4) != 0 {
-                let a = (value >> 2) & 1;
-                (a as usize, 1)
+            // Col IN1 (bit 2)
+            let col_spans = if (mask & 4) != 0 {
+                let in1 = (value >> 2) & 1;
+                vec![(in1 as usize, 1)]
             } else {
-                (0, 2)
+                vec![(0, 2)]
             };
 
-            // Col BC (bits 1, 0)
-            let b_active = (mask & 2) != 0;
-            let c_active = (mask & 1) != 0;
-            let b_val = (value >> 1) & 1;
-            let c_val = value & 1;
+            // Rows IN2 IN3 (bits 1, 0)
+            let in2_active = (mask & 2) != 0;
+            let in3_active = (mask & 1) != 0;
+            let in2_val = (value >> 1) & 1;
+            let in3_val = value & 1;
 
-            let col_spans: Vec<(usize, usize)> = match (b_active, c_active) {
+            let row_spans: Vec<(usize, usize)> = match (in2_active, in3_active) {
                 (true, true) => {
-                    let col_idx = match (b_val, c_val) {
-                        (0, 0) => 0,
-                        (0, 1) => 1,
-                        (1, 1) => 2,
-                        (1, 0) => 3,
-                        _ => 0,
-                    };
-                    vec![(col_idx, 1)]
-                }
-                (true, false) => {
-                    // C is eliminated ('-')
-                    // B=0 -> cols 0, 1
-                    // B=1 -> cols 2, 3
-                    if b_val == 0 {
-                        vec![(0, 2)]
-                    } else {
-                        vec![(2, 2)]
-                    }
-                }
-                (false, true) => {
-                    // B is eliminated ('-')
-                    // C=0 -> cols 0, 3 (wraparound!)
-                    // C=1 -> cols 1, 2
-                    if c_val == 0 {
-                        vec![(0, 1), (3, 1)]
-                    } else {
-                        vec![(1, 2)]
-                    }
-                }
-                (false, false) => {
-                    // Both B and C eliminated -> all 4 cols
-                    vec![(0, 4)]
-                }
-            };
-
-            col_spans
-                .into_iter()
-                .map(|(c_start, c_span)| GroupRect {
-                    r_start,
-                    r_span,
-                    c_start,
-                    c_span,
-                    is_corner: false,
-                })
-                .collect()
-        }
-        4 => {
-            // Row AB (bits 3, 2)
-            let a_active = (mask & 8) != 0;
-            let b_active = (mask & 4) != 0;
-            let a_val = (value >> 3) & 1;
-            let b_val = (value >> 2) & 1;
-
-            let row_spans: Vec<(usize, usize)> = match (a_active, b_active) {
-                (true, true) => {
-                    let r_idx = match (a_val, b_val) {
+                    let r_idx = match (in2_val, in3_val) {
                         (0, 0) => 0,
                         (0, 1) => 1,
                         (1, 1) => 2,
@@ -255,31 +219,54 @@ pub fn implicant_to_rects(num_vars: usize, mask: u8, value: u8) -> Vec<GroupRect
                     vec![(r_idx, 1)]
                 }
                 (true, false) => {
-                    if a_val == 0 {
+                    // IN3 is eliminated ('-')
+                    // IN2=0 -> rows 0, 1
+                    // IN2=1 -> rows 2, 3
+                    if in2_val == 0 {
                         vec![(0, 2)]
                     } else {
                         vec![(2, 2)]
                     }
                 }
                 (false, true) => {
-                    if b_val == 0 {
-                        vec![(0, 1), (3, 1)] // wraparound!
+                    // IN2 is eliminated ('-')
+                    // IN3=0 -> rows 0, 3 (wraparound!)
+                    // IN3=1 -> rows 1, 2
+                    if in3_val == 0 {
+                        vec![(0, 1), (3, 1)]
                     } else {
                         vec![(1, 2)]
                     }
                 }
-                (false, false) => vec![(0, 4)],
+                (false, false) => {
+                    // Both IN2 and IN3 eliminated -> all 4 rows
+                    vec![(0, 4)]
+                }
             };
 
-            // Col CD (bits 1, 0)
-            let c_active = (mask & 2) != 0;
-            let d_active = (mask & 1) != 0;
-            let c_val = (value >> 1) & 1;
-            let d_val = value & 1;
+            col_spans
+                .into_iter()
+                .flat_map(|(c_start, c_span)| {
+                    row_spans.iter().map(move |&(r_start, r_span)| GroupRect {
+                        r_start,
+                        r_span,
+                        c_start,
+                        c_span,
+                        is_corner: false,
+                    })
+                })
+                .collect()
+        }
+        4 => {
+            // Cols IN1 IN2 (bits 3, 2)
+            let in1_active = (mask & 8) != 0;
+            let in2_active = (mask & 4) != 0;
+            let in1_val = (value >> 3) & 1;
+            let in2_val = (value >> 2) & 1;
 
-            let col_spans: Vec<(usize, usize)> = match (c_active, d_active) {
+            let col_spans: Vec<(usize, usize)> = match (in1_active, in2_active) {
                 (true, true) => {
-                    let c_idx = match (c_val, d_val) {
+                    let c_idx = match (in1_val, in2_val) {
                         (0, 0) => 0,
                         (0, 1) => 1,
                         (1, 1) => 2,
@@ -289,14 +276,48 @@ pub fn implicant_to_rects(num_vars: usize, mask: u8, value: u8) -> Vec<GroupRect
                     vec![(c_idx, 1)]
                 }
                 (true, false) => {
-                    if c_val == 0 {
+                    if in1_val == 0 {
                         vec![(0, 2)]
                     } else {
                         vec![(2, 2)]
                     }
                 }
                 (false, true) => {
-                    if d_val == 0 {
+                    if in2_val == 0 {
+                        vec![(0, 1), (3, 1)] // wraparound!
+                    } else {
+                        vec![(1, 2)]
+                    }
+                }
+                (false, false) => vec![(0, 4)],
+            };
+
+            // Rows IN3 IN4 (bits 1, 0)
+            let in3_active = (mask & 2) != 0;
+            let in4_active = (mask & 1) != 0;
+            let in3_val = (value >> 1) & 1;
+            let in4_val = value & 1;
+
+            let row_spans: Vec<(usize, usize)> = match (in3_active, in4_active) {
+                (true, true) => {
+                    let r_idx = match (in3_val, in4_val) {
+                        (0, 0) => 0,
+                        (0, 1) => 1,
+                        (1, 1) => 2,
+                        (1, 0) => 3,
+                        _ => 0,
+                    };
+                    vec![(r_idx, 1)]
+                }
+                (true, false) => {
+                    if in3_val == 0 {
+                        vec![(0, 2)]
+                    } else {
+                        vec![(2, 2)]
+                    }
+                }
+                (false, true) => {
+                    if in4_val == 0 {
                         vec![(0, 1), (3, 1)] // wraparound!
                     } else {
                         vec![(1, 2)]
@@ -333,37 +354,37 @@ mod tests {
     #[test]
     fn test_kmap_minterm_positions() {
         let tt = generate_truth_table(4, None);
-        let grid = build_kmap_grid(4, &tt);
+        let grid = build_kmap_grid(4, &tt, None);
 
-        // Verify standard 4-variable Gray code layout:
-        // Row 0: 0, 1, 3, 2
+        // Verify requested 4-variable layout (Rows: IN3 IN4, Cols: IN1 IN2):
+        // Row 0 (IN3 IN4 = 00): 0, 4, 12, 8
         assert_eq!(grid.cells[0][0].minterm, 0);
-        assert_eq!(grid.cells[0][1].minterm, 1);
-        assert_eq!(grid.cells[0][2].minterm, 3);
-        assert_eq!(grid.cells[0][3].minterm, 2);
+        assert_eq!(grid.cells[0][1].minterm, 4);
+        assert_eq!(grid.cells[0][2].minterm, 12);
+        assert_eq!(grid.cells[0][3].minterm, 8);
 
-        // Row 1: 4, 5, 7, 6
-        assert_eq!(grid.cells[1][0].minterm, 4);
+        // Row 1 (IN3 IN4 = 01): 1, 5, 13, 9
+        assert_eq!(grid.cells[1][0].minterm, 1);
         assert_eq!(grid.cells[1][1].minterm, 5);
-        assert_eq!(grid.cells[1][2].minterm, 7);
-        assert_eq!(grid.cells[1][3].minterm, 6);
+        assert_eq!(grid.cells[1][2].minterm, 13);
+        assert_eq!(grid.cells[1][3].minterm, 9);
 
-        // Row 2: 12, 13, 15, 14
-        assert_eq!(grid.cells[2][0].minterm, 12);
-        assert_eq!(grid.cells[2][1].minterm, 13);
+        // Row 2 (IN3 IN4 = 11): 3, 7, 15, 11
+        assert_eq!(grid.cells[2][0].minterm, 3);
+        assert_eq!(grid.cells[2][1].minterm, 7);
         assert_eq!(grid.cells[2][2].minterm, 15);
-        assert_eq!(grid.cells[2][3].minterm, 14);
+        assert_eq!(grid.cells[2][3].minterm, 11);
 
-        // Row 3: 8, 9, 11, 10
-        assert_eq!(grid.cells[3][0].minterm, 8);
-        assert_eq!(grid.cells[3][1].minterm, 9);
-        assert_eq!(grid.cells[3][2].minterm, 11);
+        // Row 3 (IN3 IN4 = 10): 2, 6, 14, 10
+        assert_eq!(grid.cells[3][0].minterm, 2);
+        assert_eq!(grid.cells[3][1].minterm, 6);
+        assert_eq!(grid.cells[3][2].minterm, 14);
         assert_eq!(grid.cells[3][3].minterm, 10);
     }
 
     #[test]
     fn test_wraparound_rects() {
-        // 4 corners: B=0, D=0 -> mask: 0b0101 = 5, value: 0
+        // 4 corners: IN2=0 (bit 2), IN4=0 (bit 0) -> mask: 0b0101 = 5, value: 0
         let rects = implicant_to_rects(4, 0b0101, 0);
         assert_eq!(rects.len(), 4);
         for r in &rects {
@@ -379,13 +400,19 @@ mod tests {
     }
 
     #[test]
-    fn test_horizontal_wraparound_3var() {
-        // 3-var: C=0 -> mask 0b001, value 0 (A and B eliminated)
+    fn test_vertical_wraparound_3var() {
+        // 3-var: IN3=0 -> mask 0b001, value 0 (IN1 and IN2 eliminated)
+        // Rows: IN2 IN3 (bits 1, 0). IN3=0 wraps around rows 0 and 3!
         let rects = implicant_to_rects(3, 0b001, 0);
         assert_eq!(rects.len(), 2);
+        assert_eq!(rects[0].r_start, 0);
+        assert_eq!(rects[0].r_span, 1);
         assert_eq!(rects[0].c_start, 0);
-        assert_eq!(rects[0].c_span, 1);
-        assert_eq!(rects[1].c_start, 3);
-        assert_eq!(rects[1].c_span, 1);
+        assert_eq!(rects[0].c_span, 2);
+
+        assert_eq!(rects[1].r_start, 3);
+        assert_eq!(rects[1].r_span, 1);
+        assert_eq!(rects[1].c_start, 0);
+        assert_eq!(rects[1].c_span, 2);
     }
 }

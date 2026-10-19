@@ -1,22 +1,26 @@
 use crate::expression::{build_pos_result, build_sop_result};
 use crate::kmap::build_kmap_grid;
 use crate::models::KMapResponse;
-use crate::truth_table::{extract_terms, generate_truth_table, get_variable_names};
+use crate::truth_table::{extract_terms, generate_truth_table, resolve_variable_names};
 
 #[tauri::command]
-pub fn solve_kmap(num_vars: usize, outputs: Vec<String>) -> Result<KMapResponse, String> {
+pub fn solve_kmap(
+    num_vars: usize,
+    outputs: Vec<String>,
+    var_names: Option<Vec<String>>,
+) -> Result<KMapResponse, String> {
     let n = num_vars.clamp(2, 4);
-    let var_names = get_variable_names(n);
+    let resolved_var_names = resolve_variable_names(n, var_names.as_deref());
     let truth_table = generate_truth_table(n, Some(&outputs));
-    let grid = build_kmap_grid(n, &truth_table);
+    let grid = build_kmap_grid(n, &truth_table, Some(&resolved_var_names));
     let (on_terms, off_terms, dc_terms) = extract_terms(&truth_table);
 
-    let sop = build_sop_result(n, &on_terms, &dc_terms);
-    let pos = build_pos_result(n, &off_terms, &dc_terms);
+    let sop = build_sop_result(n, &on_terms, &dc_terms, Some(&resolved_var_names));
+    let pos = build_pos_result(n, &off_terms, &dc_terms, Some(&resolved_var_names));
 
     Ok(KMapResponse {
         num_vars: n,
-        var_names,
+        var_names: resolved_var_names,
         truth_table,
         grid,
         sop,
@@ -25,7 +29,7 @@ pub fn solve_kmap(num_vars: usize, outputs: Vec<String>) -> Result<KMapResponse,
 }
 
 #[tauri::command]
-pub fn get_default_state(num_vars: usize) -> KMapResponse {
+pub fn get_default_state(num_vars: usize, var_names: Option<Vec<String>>) -> KMapResponse {
     let n = num_vars.clamp(2, 4);
     let row_count = 1 << n;
     let default_outputs = match n {
@@ -55,5 +59,5 @@ pub fn get_default_state(num_vars: usize) -> KMapResponse {
         _ => vec!["0".to_string(); row_count],
     };
 
-    solve_kmap(n, default_outputs).unwrap()
+    solve_kmap(n, default_outputs, var_names).unwrap()
 }

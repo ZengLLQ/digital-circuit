@@ -8,6 +8,7 @@ interface ResultsPanelProps {
   pos: MinimizationResult;
   activeTab: "sop" | "pos";
   onChangeTab: (tab: "sop" | "pos") => void;
+  activeOutputName?: string;
   hoveredGroupId: string | null;
   selectedGroupId: string | null;
   onHoverGroup: (id: string | null) => void;
@@ -21,6 +22,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
   pos,
   activeTab,
   onChangeTab,
+  activeOutputName = "O0",
   hoveredGroupId,
   selectedGroupId,
   onHoverGroup,
@@ -31,7 +33,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
   const activeResult = activeTab === "sop" ? sop : pos;
 
   const handleCopy = () => {
-    const text = activeResult.expression_plain;
+    const text = `${activeOutputName} = ${activeResult.expression_plain}`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -114,7 +116,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
           {/* Rendered Math Formula with Color Pill Association */}
           <div className="flex items-center flex-wrap gap-2 py-2">
             <span className="text-xl font-mono font-bold text-[#f4f4f5]">
-              F =
+              {activeOutputName} =
             </span>
 
             {activeResult.groups.length === 0 ? (
@@ -177,7 +179,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
                     <span>Unspecified Function (All Don't-Care)</span>
                   </div>
                   <p className="text-[#cbd0dc] leading-relaxed">
-                    All input combinations are don't-care conditions (X). Under the documented deterministic convention, all outputs evaluate to constant 0 (F = 0).
+                    All input combinations are don't-care conditions (X). Under the documented deterministic convention, all outputs evaluate to constant 0 ({activeOutputName} = 0).
                   </p>
                 </div>
               ) : activeResult.is_constant_zero ? (

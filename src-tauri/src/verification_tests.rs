@@ -13,39 +13,36 @@ fn eval_sop(sop: &MinimizationResult, m: usize, num_vars: usize) -> u8 {
     }
 
     for group in &sop.groups {
-        if eval_product_term(&group.term_plain, m, num_vars) {
+        if eval_product_term(group, m, num_vars) {
             return 1;
         }
     }
     0
 }
 
-fn eval_product_term(term_str: &str, m: usize, num_vars: usize) -> bool {
-    if term_str == "1" {
+fn eval_product_term(group: &crate::models::ImplicantGroup, m: usize, num_vars: usize) -> bool {
+    if group.term_plain == "1" {
         return true;
     }
-    if term_str == "0" {
+    if group.term_plain == "0" {
         return false;
     }
 
-    let mut chars = term_str.chars().peekable();
-    while let Some(ch) = chars.next() {
-        if ch.is_ascii_uppercase() {
-            let var_idx = (ch as u8 - b'A') as usize;
-            let bit_pos = num_vars - 1 - var_idx;
-            let bit_val = (m >> bit_pos) & 1;
-
-            let is_complemented = if chars.peek() == Some(&'\'') || chars.peek() == Some(&'′') {
-                chars.next();
-                true
-            } else {
-                false
-            };
-
-            let expected_bit = if is_complemented { 0 } else { 1 };
-            if bit_val != expected_bit {
-                return false;
-            }
+    // Verify against retained conditions
+    for cond in &group.retained_vars {
+        let parts: Vec<&str> = cond.split('=').collect();
+        let var_name = parts[0];
+        let expected_val: u8 = parts[1].parse().unwrap();
+        // Determine bit pos: if IN{i}, idx = i-1
+        let var_idx: usize = if var_name.starts_with("IN") {
+            var_name["IN".len()..].parse::<usize>().unwrap() - 1
+        } else {
+            (var_name.as_bytes()[0] - b'A') as usize
+        };
+        let bit_pos = num_vars - 1 - var_idx;
+        let bit_val = ((m >> bit_pos) & 1) as u8;
+        if bit_val != expected_val {
+            return false;
         }
     }
     true
@@ -61,48 +58,37 @@ fn eval_pos(pos: &MinimizationResult, m: usize, num_vars: usize) -> u8 {
     }
 
     for group in &pos.groups {
-        if !eval_sum_term(&group.term_plain, m, num_vars) {
+        if !eval_sum_term(group, m, num_vars) {
             return 0;
         }
     }
     1
 }
 
-fn eval_sum_term(term_str: &str, m: usize, num_vars: usize) -> bool {
-    if term_str == "1" {
+fn eval_sum_term(group: &crate::models::ImplicantGroup, m: usize, num_vars: usize) -> bool {
+    if group.term_plain == "1" {
         return true;
     }
-    if term_str == "0" {
+    if group.term_plain == "0" {
         return false;
     }
 
-    let mut any_literal_one = false;
-    let mut chars = term_str.chars().peekable();
-    while let Some(ch) = chars.next() {
-        if ch.is_ascii_uppercase() {
-            let var_idx = (ch as u8 - b'A') as usize;
-            let bit_pos = num_vars - 1 - var_idx;
-            let bit_val = (m >> bit_pos) & 1;
+    // In PoS, sum term is 0 if every retained condition matches (i.e. every literal is 0)
+    let all_zero = group.retained_vars.iter().all(|cond| {
+        let parts: Vec<&str> = cond.split('=').collect();
+        let var_name = parts[0];
+        let zero_cond_val: u8 = parts[1].parse().unwrap();
+        let var_idx: usize = if var_name.starts_with("IN") {
+            var_name["IN".len()..].parse::<usize>().unwrap() - 1
+        } else {
+            (var_name.as_bytes()[0] - b'A') as usize
+        };
+        let bit_pos = num_vars - 1 - var_idx;
+        let bit_val = ((m >> bit_pos) & 1) as u8;
+        bit_val == zero_cond_val
+    });
 
-            let is_complemented = if chars.peek() == Some(&'\'') || chars.peek() == Some(&'′') {
-                chars.next();
-                true
-            } else {
-                false
-            };
-
-            let lit_val = if is_complemented {
-                1 - bit_val
-            } else {
-                bit_val
-            };
-
-            if lit_val == 1 {
-                any_literal_one = true;
-            }
-        }
-    }
-    any_literal_one
+    !all_zero
 }
 
 #[test]
@@ -128,7 +114,7 @@ fn test_truth_table_generation_2_3_4_vars() {
 fn test_kmap_gray_code_adjacency() {
     for n in 2..=4 {
         let tt = generate_truth_table(n, None);
-        let grid = build_kmap_grid(n, &tt);
+        let grid = build_kmap_grid(n, &tt, None);
 
         let rows = grid.cells.len();
         let cols = grid.cells[0].len();
@@ -173,9 +159,9 @@ fn test_four_corners_group() {
     // m2 = 0010
     // m8 = 1000
     // m10 = 1010
-    // Common: B=0 (bit 2=0), D=0 (bit 0=0). Mask = 0b0101, value = 0.
+    // Common: IN2=0 (bit 2=0), IN4=0 (bit 0=0). Mask = 0b0101, value = 0.
     let on_terms = vec![0, 2, 8, 10];
-    let sop = build_sop_result(4, &on_terms, &[]);
+    let sop = build_sop_result(4, &on_terms, &[], None);
     assert_eq!(sop.groups.len(), 1);
     let g = &sop.groups[0];
     assert_eq!(g.covered_minterms, vec![0, 2, 8, 10]);
@@ -183,7 +169,7 @@ fn test_four_corners_group() {
     for r in &g.rects {
         assert!(r.is_corner);
     }
-    assert_eq!(g.term_plain, "B'D'");
+    assert_eq!(g.term_plain, "IN2' IN4'");
 }
 
 #[test]
@@ -198,8 +184,8 @@ fn test_all_16_functions_2_vars_exhaustive() {
         let tt = generate_truth_table(2, Some(&outputs));
         let (on_terms, off_terms, dc_terms) = extract_terms(&tt);
 
-        let sop = build_sop_result(2, &on_terms, &dc_terms);
-        let pos = build_pos_result(2, &off_terms, &dc_terms);
+        let sop = build_sop_result(2, &on_terms, &dc_terms, None);
+        let pos = build_pos_result(2, &off_terms, &dc_terms, None);
 
         for m in 0..4 {
             let expected = ((func_int >> m) & 1) as u8;
@@ -232,8 +218,8 @@ fn test_all_256_functions_3_vars_exhaustive() {
         let tt = generate_truth_table(3, Some(&outputs));
         let (on_terms, off_terms, dc_terms) = extract_terms(&tt);
 
-        let sop = build_sop_result(3, &on_terms, &dc_terms);
-        let pos = build_pos_result(3, &off_terms, &dc_terms);
+        let sop = build_sop_result(3, &on_terms, &dc_terms, None);
+        let pos = build_pos_result(3, &off_terms, &dc_terms, None);
 
         for m in 0..8 {
             let expected = ((func_int >> m) & 1) as u8;
@@ -292,8 +278,8 @@ fn test_4_variables_structured_and_random_samples() {
         let tt = generate_truth_table(4, Some(&outputs));
         let (on_terms, off_terms, dc_terms) = extract_terms(&tt);
 
-        let sop = build_sop_result(4, &on_terms, &dc_terms);
-        let pos = build_pos_result(4, &off_terms, &dc_terms);
+        let sop = build_sop_result(4, &on_terms, &dc_terms, None);
+        let pos = build_pos_result(4, &off_terms, &dc_terms, None);
 
         for m in 0..16 {
             let expected = ((pattern >> m) & 1) as u8;
@@ -316,17 +302,17 @@ fn test_4_variables_structured_and_random_samples() {
 
 #[test]
 fn test_dont_care_optimization() {
-    // F(A, B, C, D) has ON-terms at m0, m2
-    // Without don't cares: m0, m2 combine to A'B'D' (3 literals)
+    // F has ON-terms at m0, m2
+    // Without don't cares: m0, m2 combine to IN1' IN2' IN4' (3 literals)
     // If m8, m10 are Don't Cares (X):
-    // Together m0, m2, m8, m10 form 4 corners -> B'D' (2 literals)!
+    // Together m0, m2, m8, m10 form 4 corners -> IN2' IN4' (2 literals)!
     let on_terms = vec![0, 2];
     let dc_terms = vec![8, 10];
 
-    let sop = build_sop_result(4, &on_terms, &dc_terms);
+    let sop = build_sop_result(4, &on_terms, &dc_terms, None);
     assert_eq!(sop.groups.len(), 1);
     let g = &sop.groups[0];
-    assert_eq!(g.term_plain, "B'D'");
+    assert_eq!(g.term_plain, "IN2' IN4'");
     assert_eq!(g.covered_minterms, vec![0, 2, 8, 10]);
 
     // Check that required on-terms are covered
@@ -346,13 +332,13 @@ fn test_determinism() {
     let tt = generate_truth_table(4, Some(&outputs));
     let (on, off, dc) = extract_terms(&tt);
 
-    let sop1 = build_sop_result(4, &on, &dc);
-    let sop2 = build_sop_result(4, &on, &dc);
+    let sop1 = build_sop_result(4, &on, &dc, None);
+    let sop2 = build_sop_result(4, &on, &dc, None);
     assert_eq!(sop1.expression_plain, sop2.expression_plain);
     assert_eq!(sop1.groups.len(), sop2.groups.len());
 
-    let pos1 = build_pos_result(4, &off, &dc);
-    let pos2 = build_pos_result(4, &off, &dc);
+    let pos1 = build_pos_result(4, &off, &dc, None);
+    let pos2 = build_pos_result(4, &off, &dc, None);
     assert_eq!(pos1.expression_plain, pos2.expression_plain);
 }
 
@@ -492,7 +478,7 @@ fn test_optimality_against_independent_brute_force_oracle() {
                 on_terms.push(m);
             }
         }
-        let sop = build_sop_result(2, &on_terms, &[]);
+        let sop = build_sop_result(2, &on_terms, &[], None);
         let (oracle_terms, oracle_lits) = brute_force_sop_oracle(&on_terms, &[], 2);
 
         assert_eq!(
@@ -515,7 +501,7 @@ fn test_optimality_against_independent_brute_force_oracle() {
                 on_terms.push(m);
             }
         }
-        let sop = build_sop_result(3, &on_terms, &[]);
+        let sop = build_sop_result(3, &on_terms, &[], None);
         let (oracle_terms, oracle_lits) = brute_force_sop_oracle(&on_terms, &[], 3);
 
         assert_eq!(
@@ -547,8 +533,8 @@ fn test_all_65536_functions_4_vars_exhaustive() {
             }
         }
 
-        let sop = build_sop_result(4, &on_terms, &[]);
-        let pos = build_pos_result(4, &off_terms, &[]);
+        let sop = build_sop_result(4, &on_terms, &[], None);
+        let pos = build_pos_result(4, &off_terms, &[], None);
 
         for m in 0..16 {
             let expected = ((func_int >> m) & 1) as u8;

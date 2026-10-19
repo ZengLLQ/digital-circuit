@@ -47,7 +47,7 @@ export const Header: React.FC<HeaderProps> = ({
         </span>
         {[2, 3, 4].map((v) => {
           const isSelected = numVars === v;
-          const varLabels = v === 2 ? "2 (A, B)" : v === 3 ? "3 (A, B, C)" : "4 (A, B, C, D)";
+          const varLabels = v === 2 ? "2 (IN1, IN2)" : v === 3 ? "3 (IN1..IN3)" : "4 (IN1..IN4)";
           return (
             <button
               key={v}
@@ -67,18 +67,18 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Right Controls */}
       <div className="flex items-center gap-2">
-        {/* Toggle Overlays */}
+        {/* Toggle Overlays (Auto Circle) */}
         <button
           onClick={onToggleShowGroups}
-          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium border transition-colors cursor-pointer ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border transition-all cursor-pointer ${
             showGroups
-              ? "bg-[#7c3aed]/20 text-[#ddd6fe] border-[#7c3aed]/50 hover:bg-[#7c3aed]/30 shadow-xs"
+              ? "bg-[#7c3aed]/25 text-[#ddd6fe] border-[#7c3aed]/60 hover:bg-[#7c3aed]/35 shadow-[0_0_12px_rgba(124,58,237,0.3)]"
               : "bg-[#18191e] text-[#9ca3af] border-[#262830] hover:bg-[#22242c] hover:text-[#e4e4e7]"
           }`}
-          title="Toggle K-Map color group contours"
+          title="Toggle automatic K-Map loop circles (Auto Circle)"
         >
           <Layers className="w-3.5 h-3.5 text-[#a78bfa]" />
-          <span>{showGroups ? "Groups On" : "Groups Off"}</span>
+          <span>{showGroups ? "Auto Circle: ON" : "Auto Circle: OFF"}</span>
         </button>
 
         {/* Reset / Reload Default */}

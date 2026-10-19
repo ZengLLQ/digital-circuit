@@ -79,7 +79,7 @@ export const EducationalModal: React.FC<EducationalModalProps> = ({
             <p>
               A Karnaugh map is topologically a <b>torus</b> (donut). The leftmost column is adjacent to the rightmost column (differing only in one bit), and the top row is adjacent to the bottom row.
               <br />
-              In a 4-variable map, the <b>four outer corners</b> (m0, m2, m8, m10) form a valid, highly efficient 4-cell group simplifying to <code className="bg-[#131417] text-[#a78bfa] font-bold px-1 py-0.5 rounded border border-[#252732]">B′D′</code>!
+              In a 4-variable map, the <b>four outer corners</b> (m0, m2, m8, m10) form a valid, highly efficient 4-cell group simplifying to <code className="bg-[#131417] text-[#a78bfa] font-bold px-1 py-0.5 rounded border border-[#252732]">IN2′ IN4′</code>!
             </p>
           </div>
 

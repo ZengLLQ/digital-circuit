@@ -5,7 +5,7 @@ import { KarnaughMap } from "./components/KarnaughMap";
 import { ResultsPanel } from "./components/ResultsPanel";
 import { EducationalModal } from "./components/EducationalModal";
 import { ResetConfirmModal } from "./components/ResetConfirmModal";
-import { getDefaultState, solveKMap } from "./api";
+import { getDefaultState, getDefaultOutputs, solveKMap } from "./api";
 import { KMapResponse, OutputValue } from "./types/kmap";
 import { Loader2 } from "lucide-react";
 
@@ -15,6 +15,27 @@ export function App() {
   const [loading, setLoading] = useState<boolean>(true);
   const [activeTab, setActiveTab] = useState<"sop" | "pos">("sop");
   const [showGroups, setShowGroups] = useState<boolean>(true);
+
+  // Variable names state: user can change freely, default IN1, IN2, IN3, IN4
+  const [varNames, setVarNames] = useState<string[]>([
+    "IN1",
+    "IN2",
+    "IN3",
+    "IN4",
+  ]);
+  const [varNamesCache, setVarNamesCache] = useState<string[]>([
+    "IN1",
+    "IN2",
+    "IN3",
+    "IN4",
+  ]);
+
+  // Multiple outputs state: prefix "O", default O0
+  const [outputNames, setOutputNames] = useState<string[]>(["O0"]);
+  const [activeOutputName, setActiveOutputName] = useState<string>("O0");
+  const [allOutputs, setAllOutputs] = useState<Record<string, OutputValue[]>>({
+    O0: getDefaultOutputs(4),
+  });
 
   // Cross-component interactive highlight states
   const [hoveredMinterm, setHoveredMinterm] = useState<number | null>(null);
@@ -29,133 +50,250 @@ export function App() {
     document.documentElement.classList.add("dark");
   }, []);
 
+  // Solve active output function
+  const solveActiveFunction = useCallback(
+    async (
+      varsCount: number,
+      currentVarNames: string[],
+      activeOut: string,
+      outputsMap: Record<string, OutputValue[]>
+    ) => {
+      const currentOutputs =
+        outputsMap[activeOut] || getDefaultOutputs(varsCount);
+      try {
+        const res = await solveKMap(varsCount, currentOutputs, currentVarNames);
+        setData(res);
+      } catch (err) {
+        console.error("Failed to solve K-Map:", err);
+      }
+    },
+    []
+  );
+
   // Load initial educational state
-  const loadStateForVars = useCallback(async (v: number) => {
-    setLoading(true);
-    try {
-      const res = await getDefaultState(v);
-      setData(res);
-      setSelectedMinterm(null);
-      setHoveredMinterm(null);
-      setSelectedGroupId(null);
-      setHoveredGroupId(null);
-    } catch (err) {
-      console.error("Failed to load state:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadStateForVars(4);
-  }, [loadStateForVars]);
-
-  // Handle variable count changes while preserving unambiguous existing inputs
-  const handleSelectVars = async (newV: number) => {
-    if (newV === numVars) return;
-
-    if (data) {
+  const loadInitialState = useCallback(
+    async (v: number) => {
       setLoading(true);
       try {
-        const currentOutputs = data.truth_table.map((r) => r.output as OutputValue);
-        const newRowCount = 1 << newV;
-        const newOutputs: OutputValue[] = [];
+        const initialVars = Array.from({ length: v }, (_, i) => `IN${i + 1}`);
+        const defaultOuts = getDefaultOutputs(v);
+        const initialAllOutputs: Record<string, OutputValue[]> = {
+          O0: defaultOuts,
+        };
 
-        // Preserve existing values for rows common to both configurations
-        for (let i = 0; i < newRowCount; i++) {
-          if (i < currentOutputs.length) {
-            newOutputs.push(currentOutputs[i]);
-          } else {
-            newOutputs.push("0");
-          }
-        }
+        setNumVars(v);
+        setVarNames(initialVars);
+        setVarNamesCache(["IN1", "IN2", "IN3", "IN4"]);
+        setOutputNames(["O0"]);
+        setActiveOutputName("O0");
+        setAllOutputs(initialAllOutputs);
 
-        const res = await solveKMap(newV, newOutputs);
+        const res = await getDefaultState(v, initialVars);
         setData(res);
-        setNumVars(newV);
         setSelectedMinterm(null);
         setHoveredMinterm(null);
         setSelectedGroupId(null);
         setHoveredGroupId(null);
       } catch (err) {
-        console.error("Failed to switch variable count:", err);
+        console.error("Failed to load state:", err);
       } finally {
         setLoading(false);
       }
-    } else {
-      setNumVars(newV);
-      loadStateForVars(newV);
-    }
-  };
+    },
+    []
+  );
 
-  // Update truth table outputs
-  const handleUpdateOutputs = async (newOutputs: OutputValue[]) => {
+  useEffect(() => {
+    loadInitialState(4);
+  }, [loadInitialState]);
+
+  // Handle variable count changes while preserving existing inputs
+  const handleSelectVars = async (newV: number) => {
+    if (newV === numVars) return;
+
+    setLoading(true);
     try {
-      const res = await solveKMap(numVars, newOutputs);
-      setData(res);
+      // Adjust variable names: preserve custom names from cache, or use defaults
+      const newVarNames = Array.from({ length: newV }, (_, i) => {
+        return varNamesCache[i] || `IN${i + 1}`;
+      });
+
+      const newRowCount = 1 << newV;
+      const updatedAllOutputs: Record<string, OutputValue[]> = {};
+
+      for (const name of outputNames) {
+        const prev = allOutputs[name] || [];
+        const next: OutputValue[] = [];
+        for (let i = 0; i < newRowCount; i++) {
+          next.push(i < prev.length ? prev[i] : "0");
+        }
+        updatedAllOutputs[name] = next;
+      }
+
+      setNumVars(newV);
+      setVarNames(newVarNames);
+      setAllOutputs(updatedAllOutputs);
+
+      await solveActiveFunction(
+        newV,
+        newVarNames,
+        activeOutputName,
+        updatedAllOutputs
+      );
+
+      setSelectedMinterm(null);
+      setHoveredMinterm(null);
+      setSelectedGroupId(null);
+      setHoveredGroupId(null);
     } catch (err) {
-      console.error("Failed to solve K-Map:", err);
+      console.error("Failed to switch variable count:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Toggle single truth table row output: 0 -> 1 -> X -> 0
-  const handleToggleOutput = (index: number) => {
-    if (!data) return;
-    const current = data.truth_table[index].output;
-    const next: OutputValue = current === "0" ? "1" : current === "1" ? "X" : "0";
-    const newOutputs = data.truth_table.map((r) =>
-      r.index === index ? next : r.output
-    );
-    handleUpdateOutputs(newOutputs);
+  // Rename variable
+  const handleRenameVariable = (index: number, newName: string) => {
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    const nextVarNames = [...varNames];
+    nextVarNames[index] = trimmed;
+    setVarNames(nextVarNames);
+
+    const nextCache = [...varNamesCache];
+    nextCache[index] = trimmed;
+    setVarNamesCache(nextCache);
+
+    solveActiveFunction(numVars, nextVarNames, activeOutputName, allOutputs);
+  };
+
+  // Add new output column (e.g. O1, O2, O3...)
+  const handleAddOutput = () => {
+    let nextIdx = 0;
+    while (outputNames.includes(`O${nextIdx}`)) {
+      nextIdx++;
+    }
+    const newName = `O${nextIdx}`;
+    const rowCount = 1 << numVars;
+    const newValues: OutputValue[] = new Array(rowCount).fill("0");
+
+    const nextOutputs = { ...allOutputs, [newName]: newValues };
+    const nextNames = [...outputNames, newName];
+
+    setOutputNames(nextNames);
+    setAllOutputs(nextOutputs);
+    setActiveOutputName(newName);
+
+    solveActiveFunction(numVars, varNames, newName, nextOutputs);
+  };
+
+  // Delete an output column
+  const handleDeleteOutput = (outputToDelete: string) => {
+    if (outputNames.length <= 1) return;
+
+    const nextNames = outputNames.filter((n) => n !== outputToDelete);
+    const nextOutputs = { ...allOutputs };
+    delete nextOutputs[outputToDelete];
+
+    const nextActive =
+      activeOutputName === outputToDelete ? nextNames[0] : activeOutputName;
+
+    setOutputNames(nextNames);
+    setAllOutputs(nextOutputs);
+    setActiveOutputName(nextActive);
+
+    solveActiveFunction(numVars, varNames, nextActive, nextOutputs);
+  };
+
+  // Switch which output is displayed in K-Map and solved
+  const handleSelectActiveOutput = (outputName: string) => {
+    if (!outputNames.includes(outputName)) return;
+    setActiveOutputName(outputName);
+    solveActiveFunction(numVars, varNames, outputName, allOutputs);
+  };
+
+  // Toggle single output cell: 0 -> 1 -> X -> 0
+  const handleToggleOutput = (index: number, outputName?: string) => {
+    const target = outputName || activeOutputName;
+    const currentList = allOutputs[target] || [];
+    const currentVal = currentList[index] || "0";
+    const nextVal: OutputValue =
+      currentVal === "0" ? "1" : currentVal === "1" ? "X" : "0";
+
+    const nextList = [...currentList];
+    nextList[index] = nextVal;
+    const nextAllOutputs = { ...allOutputs, [target]: nextList };
+    setAllOutputs(nextAllOutputs);
+
+    if (activeOutputName !== target) {
+      setActiveOutputName(target);
+    }
+    solveActiveFunction(numVars, varNames, target, nextAllOutputs);
   };
 
   // Explicitly set single row output
-  const handleSetOutput = (index: number, val: OutputValue) => {
-    if (!data) return;
-    const newOutputs = data.truth_table.map((r) =>
-      r.index === index ? val : r.output
-    );
-    handleUpdateOutputs(newOutputs);
+  const handleSetOutput = (
+    index: number,
+    val: OutputValue,
+    outputName?: string
+  ) => {
+    const target = outputName || activeOutputName;
+    const currentList = allOutputs[target] || [];
+    const nextList = [...currentList];
+    nextList[index] = val;
+    const nextAllOutputs = { ...allOutputs, [target]: nextList };
+    setAllOutputs(nextAllOutputs);
+
+    if (activeOutputName !== target) {
+      setActiveOutputName(target);
+    }
+    solveActiveFunction(numVars, varNames, target, nextAllOutputs);
   };
 
-  // Set all outputs
+  // Set all outputs for active output
   const handleSetAll = (val: OutputValue) => {
-    if (!data) return;
-    const newOutputs = data.truth_table.map(() => val);
-    handleUpdateOutputs(newOutputs);
+    const rowCount = 1 << numVars;
+    const nextList: OutputValue[] = new Array(rowCount).fill(val);
+    const nextAllOutputs = { ...allOutputs, [activeOutputName]: nextList };
+    setAllOutputs(nextAllOutputs);
+
+    solveActiveFunction(numVars, varNames, activeOutputName, nextAllOutputs);
   };
 
-  // Invert outputs (0 <-> 1, X preserved)
+  // Invert outputs for active output (0 <-> 1, X preserved)
   const handleInvertAll = () => {
-    if (!data) return;
-    const newOutputs = data.truth_table.map((r) => {
-      if (r.output === "0") return "1" as OutputValue;
-      if (r.output === "1") return "0" as OutputValue;
+    const currentList = allOutputs[activeOutputName] || [];
+    const nextList = currentList.map((val) => {
+      if (val === "0") return "1" as OutputValue;
+      if (val === "1") return "0" as OutputValue;
       return "X" as OutputValue;
     });
-    handleUpdateOutputs(newOutputs);
+    const nextAllOutputs = { ...allOutputs, [activeOutputName]: nextList };
+    setAllOutputs(nextAllOutputs);
+
+    solveActiveFunction(numVars, varNames, activeOutputName, nextAllOutputs);
   };
 
   // Toggle from K-map cell
   const handleToggleCell = (minterm: number) => {
-    handleToggleOutput(minterm);
+    handleToggleOutput(minterm, activeOutputName);
     setSelectedMinterm(minterm);
   };
 
   // Direct output set from K-map cell keyboard
   const handleSetCellOutput = (minterm: number, val: OutputValue) => {
-    handleSetOutput(minterm, val);
+    handleSetOutput(minterm, val, activeOutputName);
     setSelectedMinterm(minterm);
   };
 
-  // Reset with confirmation
+  // Reset confirmation
   const handleRequestReset = () => {
     setIsResetConfirmOpen(true);
   };
 
   const handleConfirmReset = () => {
     setIsResetConfirmOpen(false);
-    loadStateForVars(numVars);
+    loadInitialState(numVars);
   };
 
   if (!data && loading) {
@@ -163,13 +301,16 @@ export function App() {
       <div className="flex h-screen w-screen items-center justify-center bg-[#0a0a0c] text-[#f3f4f6]">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="w-8 h-8 animate-spin text-[#a78bfa]" />
-          <span className="text-sm font-medium text-[#d1d5db]">Initializing Karnaugh Studio...</span>
+          <span className="text-sm font-medium text-[#d1d5db]">
+            Initializing Karnaugh Studio...
+          </span>
         </div>
       </div>
     );
   }
 
-  const currentGroups = activeTab === "sop" ? data?.sop.groups ?? [] : data?.pos.groups ?? [];
+  const currentGroups =
+    activeTab === "sop" ? data?.sop.groups ?? [] : data?.pos.groups ?? [];
   const activeGroup = currentGroups.find(
     (g) => g.id === (hoveredGroupId || selectedGroupId)
   );
@@ -188,12 +329,15 @@ export function App() {
 
       {/* Main Workspace (3 columns) */}
       <main className="flex-1 p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 overflow-hidden">
-        {/* Left Area: Truth Table (col-span 3) */}
-        <section className="lg:col-span-3 h-full min-h-0">
+        {/* Left Area: Truth Table (col-span 4) */}
+        <section className="lg:col-span-4 h-full min-h-0">
           {data && (
             <TruthTable
               rows={data.truth_table}
-              varNames={data.var_names}
+              varNames={varNames}
+              outputNames={outputNames}
+              activeOutputName={activeOutputName}
+              allOutputs={allOutputs}
               hoveredMinterm={hoveredMinterm}
               selectedMinterm={selectedMinterm}
               activeGroupMinterms={activeGroup?.covered_minterms}
@@ -203,17 +347,24 @@ export function App() {
               onSetOutput={handleSetOutput}
               onSetAll={handleSetAll}
               onInvertAll={handleInvertAll}
+              onRenameVariable={handleRenameVariable}
+              onAddOutput={handleAddOutput}
+              onDeleteOutput={handleDeleteOutput}
+              onSelectActiveOutput={handleSelectActiveOutput}
             />
           )}
         </section>
 
-        {/* Center Area: Karnaugh Map Visualization (col-span 5) */}
-        <section className="lg:col-span-5 h-full min-h-0 flex flex-col justify-center overflow-auto">
+        {/* Center Area: Karnaugh Map Visualization (col-span 4) */}
+        <section className="lg:col-span-4 h-full min-h-0 flex flex-col justify-center overflow-auto">
           {data && (
             <KarnaughMap
               grid={data.grid}
               groups={currentGroups}
               showGroups={showGroups}
+              activeOutputName={activeOutputName}
+              outputNames={outputNames}
+              onSelectOutput={handleSelectActiveOutput}
               hoveredMinterm={hoveredMinterm}
               selectedMinterm={selectedMinterm}
               hoveredGroupId={hoveredGroupId}
@@ -236,6 +387,7 @@ export function App() {
               pos={data.pos}
               activeTab={activeTab}
               onChangeTab={setActiveTab}
+              activeOutputName={activeOutputName}
               hoveredGroupId={hoveredGroupId}
               selectedGroupId={selectedGroupId}
               onHoverGroup={setHoveredGroupId}

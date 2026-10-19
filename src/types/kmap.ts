@@ -1,9 +1,16 @@
 export type OutputValue = "0" | "1" | "X";
 
+export interface OutputColumn {
+  id: string;
+  name: string;
+  values: OutputValue[];
+}
+
 export interface TruthTableRow {
   index: usize;
   values: number[]; // e.g. [0, 1]
   output: OutputValue;
+  outputs?: Record<string, OutputValue>;
 }
 
 export type usize = number;
