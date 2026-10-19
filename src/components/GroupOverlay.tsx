@@ -119,29 +119,28 @@ export const GroupOverlay: React.FC<GroupOverlayProps> = ({
                     filter={isHighlighted ? `url(#glow-${group.id})` : undefined}
                   />
 
-                  {/* Group ID badge on primary or corner rect */}
-                  {rIdx === 0 && (
-                    <g transform={`translate(${x + 4}, ${y + 4})`}>
-                      <rect
-                        width="24"
-                        height="16"
-                        rx="4"
-                        fill={color.badgeBg}
-                        className="shadow-xs"
-                      />
-                      <text
-                        x="12"
-                        y="11.5"
-                        fill={color.badgeText}
-                        fontSize="9"
-                        fontWeight="700"
-                        fontFamily="ui-sans-serif, system-ui, sans-serif"
-                        textAnchor="middle"
-                      >
-                        {group.id}
-                      </text>
-                    </g>
-                  )}
+                  {/* Group ID badge on primary and wraparound/corner segments */}
+                  <g transform={`translate(${x + 4}, ${y + 4})`}>
+                    <rect
+                      width="24"
+                      height="16"
+                      rx="4"
+                      fill={color.badgeBg}
+                      className="shadow-xs"
+                      opacity={rIdx === 0 ? 1.0 : 0.85}
+                    />
+                    <text
+                      x="12"
+                      y="11.5"
+                      fill={color.badgeText}
+                      fontSize="9"
+                      fontWeight="700"
+                      fontFamily="ui-sans-serif, system-ui, sans-serif"
+                      textAnchor="middle"
+                    >
+                      {group.id}
+                    </text>
+                  </g>
                 </g>
               );
             })}

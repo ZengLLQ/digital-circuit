@@ -1,6 +1,7 @@
 import React from "react";
-import { ImplicantGroup, KMapGrid } from "../types/kmap";
+import { ImplicantGroup, KMapGrid, OutputValue } from "../types/kmap";
 import { GroupOverlay } from "./GroupOverlay";
+import { getGroupColor } from "../utils/colors";
 
 interface KarnaughMapProps {
   grid: KMapGrid;
@@ -15,6 +16,8 @@ interface KarnaughMapProps {
   onHoverGroup: (id: string | null) => void;
   onSelectGroup: (id: string | null) => void;
   onToggleCell: (minterm: number) => void;
+  onSetCellOutput?: (minterm: number, val: OutputValue) => void;
+  isDark: boolean;
 }
 
 export const KarnaughMap: React.FC<KarnaughMapProps> = ({
@@ -30,6 +33,8 @@ export const KarnaughMap: React.FC<KarnaughMapProps> = ({
   onHoverGroup,
   onSelectGroup,
   onToggleCell,
+  onSetCellOutput,
+  isDark,
 }) => {
   const rowCount = grid.cells.length;
   const colCount = grid.cells[0]?.length ?? 2;
@@ -40,6 +45,52 @@ export const KarnaughMap: React.FC<KarnaughMapProps> = ({
 
   const rowVarsLabel = grid.row_vars.join("");
   const colVarsLabel = grid.col_vars.join("");
+
+  const activeGroup = groups.find(
+    (g) => g.id === (hoveredGroupId || selectedGroupId)
+  );
+  const activeColor = activeGroup ? getGroupColor(activeGroup.color_index ?? 0) : null;
+
+  const handleCellKeyDown = (
+    e: React.KeyboardEvent,
+    r: number,
+    c: number,
+    minterm: number
+  ) => {
+    if (e.key === "ArrowRight") {
+      e.preventDefault();
+      const nextC = (c + 1) % colCount;
+      const el = document.getElementById(`kmap-cell-${r}-${nextC}`);
+      el?.focus();
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      const prevC = (c - 1 + colCount) % colCount;
+      const el = document.getElementById(`kmap-cell-${r}-${prevC}`);
+      el?.focus();
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      const nextR = (r + 1) % rowCount;
+      const el = document.getElementById(`kmap-cell-${nextR}-${c}`);
+      el?.focus();
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      const prevR = (r - 1 + rowCount) % rowCount;
+      const el = document.getElementById(`kmap-cell-${prevR}-${c}`);
+      el?.focus();
+    } else if (e.key === "0") {
+      e.preventDefault();
+      onSetCellOutput?.(minterm, "0");
+    } else if (e.key === "1") {
+      e.preventDefault();
+      onSetCellOutput?.(minterm, "1");
+    } else if (e.key.toLowerCase() === "x" || e.key.toLowerCase() === "d") {
+      e.preventDefault();
+      onSetCellOutput?.(minterm, "X");
+    } else if (e.key === " " || e.key === "Enter") {
+      e.preventDefault();
+      onToggleCell(minterm);
+    }
+  };
 
   return (
     <div className="flex flex-col items-center justify-center p-6 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs select-none">
@@ -54,7 +105,7 @@ export const KarnaughMap: React.FC<KarnaughMapProps> = ({
           </span>
         </div>
         <div className="text-[11px] text-slate-400">
-          Click cell to cycle value (0 → 1 → X)
+          Click or [0, 1, X, Space] to edit
         </div>
       </div>
 
@@ -136,11 +187,6 @@ export const KarnaughMap: React.FC<KarnaughMapProps> = ({
                 rowCells.map((cell, cIdx) => {
                   const isHovered = hoveredMinterm === cell.minterm;
                   const isSelected = selectedMinterm === cell.minterm;
-
-                  // Check if cell is covered by hovered or selected group
-                  const activeGroup = groups.find(
-                    (g) => g.id === (hoveredGroupId || selectedGroupId)
-                  );
                   const isGroupCovered = activeGroup?.covered_minterms.includes(
                     cell.minterm
                   );
@@ -157,26 +203,40 @@ export const KarnaughMap: React.FC<KarnaughMapProps> = ({
                   }
 
                   let borderClass = "border-slate-200 dark:border-slate-700/70";
+                  let customStyle: React.CSSProperties = {
+                    width: cellSize,
+                    height: cellSize,
+                  };
+
                   if (isSelected) {
                     borderClass = "ring-2 ring-cyan-500 border-cyan-500 z-20";
                   } else if (isHovered) {
                     borderClass = "border-cyan-400 dark:border-cyan-600 z-20";
-                  } else if (isGroupCovered) {
-                    borderClass = "border-slate-400 dark:border-slate-500";
+                  } else if (isGroupCovered && activeColor) {
+                    borderClass = "z-15 shadow-xs";
+                    customStyle.borderColor = activeColor.border;
+                    customStyle.backgroundColor = isDark
+                      ? activeColor.pillBgDark
+                      : activeColor.pillBgLight;
                   }
 
                   return (
                     <div
+                      id={`kmap-cell-${rIdx}-${cIdx}`}
                       key={`cell-${rIdx}-${cIdx}`}
+                      tabIndex={0}
                       onClick={() => {
                         onSelectMinterm(cell.minterm);
                         onToggleCell(cell.minterm);
                       }}
+                      onKeyDown={(e) =>
+                        handleCellKeyDown(e, rIdx, cIdx, cell.minterm)
+                      }
                       onMouseEnter={() => onHoverMinterm(cell.minterm)}
                       onMouseLeave={() => onHoverMinterm(null)}
-                      style={{ width: cellSize, height: cellSize }}
-                      className={`relative flex flex-col items-center justify-center rounded-xl border transition-all cursor-pointer select-none ${bgClass} ${borderClass} hover:shadow-xs active:scale-95`}
-                      title={`Minterm m${cell.minterm} (${cell.binary}) = ${cell.output}`}
+                      style={customStyle}
+                      className={`relative flex flex-col items-center justify-center rounded-xl border transition-all cursor-pointer select-none outline-hidden focus:ring-2 focus:ring-cyan-500 ${bgClass} ${borderClass} hover:shadow-xs active:scale-95`}
+                      title={`Minterm m${cell.minterm} (${cell.binary}) = ${cell.output}. Press 0, 1, X, or Space to edit.`}
                     >
                       {/* Secondary Minterm Index Label */}
                       <span className="absolute top-1.5 left-2 text-[10px] font-mono text-slate-400 dark:text-slate-500">

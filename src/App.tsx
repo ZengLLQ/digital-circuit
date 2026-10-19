@@ -4,6 +4,7 @@ import { TruthTable } from "./components/TruthTable";
 import { KarnaughMap } from "./components/KarnaughMap";
 import { ResultsPanel } from "./components/ResultsPanel";
 import { EducationalModal } from "./components/EducationalModal";
+import { ResetConfirmModal } from "./components/ResetConfirmModal";
 import { getDefaultState, solveKMap } from "./api";
 import { KMapResponse, OutputValue } from "./types/kmap";
 import { Loader2 } from "lucide-react";
@@ -22,6 +23,7 @@ export function App() {
   const [hoveredGroupId, setHoveredGroupId] = useState<string | null>(null);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [isHelpOpen, setIsHelpOpen] = useState<boolean>(false);
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState<boolean>(false);
 
   // Sync theme class with document element
   useEffect(() => {
@@ -32,7 +34,7 @@ export function App() {
     }
   }, [isDark]);
 
-  // Load initial state
+  // Load initial educational state
   const loadStateForVars = useCallback(async (v: number) => {
     setLoading(true);
     try {
@@ -50,13 +52,45 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    loadStateForVars(numVars);
-  }, [numVars, loadStateForVars]);
+    loadStateForVars(4);
+  }, [loadStateForVars]);
 
-  // Handle variable change
-  const handleSelectVars = (v: number) => {
-    if (v === numVars) return;
-    setNumVars(v);
+  // Handle variable count changes while preserving unambiguous existing inputs
+  const handleSelectVars = async (newV: number) => {
+    if (newV === numVars) return;
+
+    if (data) {
+      setLoading(true);
+      try {
+        const currentOutputs = data.truth_table.map((r) => r.output as OutputValue);
+        const newRowCount = 1 << newV;
+        const newOutputs: OutputValue[] = [];
+
+        // Preserve existing values for rows common to both configurations
+        for (let i = 0; i < newRowCount; i++) {
+          if (i < currentOutputs.length) {
+            newOutputs.push(currentOutputs[i]);
+          } else {
+            newOutputs.push("0");
+          }
+        }
+
+        const res = await solveKMap(newV, newOutputs);
+        setData(res);
+        setNumVars(newV);
+        setSelectedMinterm(null);
+        setHoveredMinterm(null);
+        setSelectedGroupId(null);
+        setHoveredGroupId(null);
+      } catch (err) {
+        console.error("Failed to switch variable count:", err);
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      setNumVars(newV);
+      loadStateForVars(newV);
+    }
   };
 
   // Update truth table outputs
@@ -113,6 +147,22 @@ export function App() {
     setSelectedMinterm(minterm);
   };
 
+  // Direct output set from K-map cell keyboard
+  const handleSetCellOutput = (minterm: number, val: OutputValue) => {
+    handleSetOutput(minterm, val);
+    setSelectedMinterm(minterm);
+  };
+
+  // Reset with confirmation
+  const handleRequestReset = () => {
+    setIsResetConfirmOpen(true);
+  };
+
+  const handleConfirmReset = () => {
+    setIsResetConfirmOpen(false);
+    loadStateForVars(numVars);
+  };
+
   if (!data && loading) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-slate-900 text-slate-100">
@@ -125,6 +175,9 @@ export function App() {
   }
 
   const currentGroups = activeTab === "sop" ? data?.sop.groups ?? [] : data?.pos.groups ?? [];
+  const activeGroup = currentGroups.find(
+    (g) => g.id === (hoveredGroupId || selectedGroupId)
+  );
 
   return (
     <div className="flex flex-col h-screen w-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 overflow-hidden font-sans">
@@ -136,7 +189,7 @@ export function App() {
         onToggleShowGroups={() => setShowGroups((prev) => !prev)}
         isDark={isDark}
         onToggleTheme={() => setIsDark((prev) => !prev)}
-        onReset={() => loadStateForVars(numVars)}
+        onReset={handleRequestReset}
         onOpenHelp={() => setIsHelpOpen(true)}
       />
 
@@ -150,6 +203,7 @@ export function App() {
               varNames={data.var_names}
               hoveredMinterm={hoveredMinterm}
               selectedMinterm={selectedMinterm}
+              activeGroupMinterms={activeGroup?.covered_minterms}
               onHoverMinterm={setHoveredMinterm}
               onSelectMinterm={setSelectedMinterm}
               onToggleOutput={handleToggleOutput}
@@ -176,6 +230,8 @@ export function App() {
               onHoverGroup={setHoveredGroupId}
               onSelectGroup={setSelectedGroupId}
               onToggleCell={handleToggleCell}
+              onSetCellOutput={handleSetCellOutput}
+              isDark={isDark}
             />
           )}
         </section>
@@ -203,6 +259,14 @@ export function App() {
       <EducationalModal
         isOpen={isHelpOpen}
         onClose={() => setIsHelpOpen(false)}
+      />
+
+      {/* Reset Confirmation Modal */}
+      <ResetConfirmModal
+        isOpen={isResetConfirmOpen}
+        numVars={numVars}
+        onConfirm={handleConfirmReset}
+        onCancel={() => setIsResetConfirmOpen(false)}
       />
     </div>
   );

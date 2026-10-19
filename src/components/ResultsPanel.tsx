@@ -174,9 +174,21 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
           </h3>
 
           {activeResult.groups.length === 0 ? (
-            <div className="p-3 text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/30 rounded-lg">
-              {activeResult.is_constant_zero && "Function evaluates to constant 0 for all input combinations."}
-              {activeResult.is_constant_one && "Function evaluates to constant 1 for all input combinations."}
+            <div className="p-3.5 text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/30 rounded-lg border border-slate-200/60 dark:border-slate-800">
+              {activeResult.is_all_dont_care ? (
+                <div>
+                  <div className="font-semibold text-amber-700 dark:text-amber-400 mb-1 flex items-center gap-1.5">
+                    <span>Unspecified Function (All Don't-Care)</span>
+                  </div>
+                  <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
+                    All input combinations are don't-care conditions (X). Under the documented deterministic convention, all outputs evaluate to constant 0 (F = 0).
+                  </p>
+                </div>
+              ) : activeResult.is_constant_zero ? (
+                "Function evaluates to constant 0 for all input combinations."
+              ) : activeResult.is_constant_one ? (
+                "Function evaluates to constant 1 for all input combinations."
+              ) : null}
             </div>
           ) : (
             <div className="space-y-2">

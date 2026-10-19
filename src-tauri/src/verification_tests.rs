@@ -3,8 +3,8 @@ use crate::kmap::build_kmap_grid;
 use crate::models::MinimizationResult;
 use crate::truth_table::{extract_terms, generate_truth_table};
 
-// Helper: evaluate SoP expression against a minterm index m
-fn eval_sop(sop: &MinimizationResult, m: usize, _num_vars: usize) -> u8 {
+// Helper: true mathematical evaluator of SoP algebraic formula against minterm index m
+fn eval_sop(sop: &MinimizationResult, m: usize, num_vars: usize) -> u8 {
     if sop.is_constant_zero {
         return 0;
     }
@@ -13,16 +13,46 @@ fn eval_sop(sop: &MinimizationResult, m: usize, _num_vars: usize) -> u8 {
     }
 
     for group in &sop.groups {
-        let covers = group.covered_minterms.binary_search(&m).is_ok();
-        if covers {
+        if eval_product_term(&group.term_plain, m, num_vars) {
             return 1;
         }
     }
     0
 }
 
-// Helper: evaluate PoS expression against a minterm index m
-fn eval_pos(pos: &MinimizationResult, m: usize, _num_vars: usize) -> u8 {
+fn eval_product_term(term_str: &str, m: usize, num_vars: usize) -> bool {
+    if term_str == "1" {
+        return true;
+    }
+    if term_str == "0" {
+        return false;
+    }
+
+    let mut chars = term_str.chars().peekable();
+    while let Some(ch) = chars.next() {
+        if ch.is_ascii_uppercase() {
+            let var_idx = (ch as u8 - b'A') as usize;
+            let bit_pos = num_vars - 1 - var_idx;
+            let bit_val = (m >> bit_pos) & 1;
+
+            let is_complemented = if chars.peek() == Some(&'\'') || chars.peek() == Some(&'′') {
+                chars.next();
+                true
+            } else {
+                false
+            };
+
+            let expected_bit = if is_complemented { 0 } else { 1 };
+            if bit_val != expected_bit {
+                return false;
+            }
+        }
+    }
+    true
+}
+
+// Helper: true mathematical evaluator of PoS algebraic formula against minterm index m
+fn eval_pos(pos: &MinimizationResult, m: usize, num_vars: usize) -> u8 {
     if pos.is_constant_zero {
         return 0;
     }
@@ -31,12 +61,48 @@ fn eval_pos(pos: &MinimizationResult, m: usize, _num_vars: usize) -> u8 {
     }
 
     for group in &pos.groups {
-        let is_zero_covered = group.covered_minterms.binary_search(&m).is_ok();
-        if is_zero_covered {
+        if !eval_sum_term(&group.term_plain, m, num_vars) {
             return 0;
         }
     }
     1
+}
+
+fn eval_sum_term(term_str: &str, m: usize, num_vars: usize) -> bool {
+    if term_str == "1" {
+        return true;
+    }
+    if term_str == "0" {
+        return false;
+    }
+
+    let mut any_literal_one = false;
+    let mut chars = term_str.chars().peekable();
+    while let Some(ch) = chars.next() {
+        if ch.is_ascii_uppercase() {
+            let var_idx = (ch as u8 - b'A') as usize;
+            let bit_pos = num_vars - 1 - var_idx;
+            let bit_val = (m >> bit_pos) & 1;
+
+            let is_complemented = if chars.peek() == Some(&'\'') || chars.peek() == Some(&'′') {
+                chars.next();
+                true
+            } else {
+                false
+            };
+
+            let lit_val = if is_complemented {
+                1 - bit_val
+            } else {
+                bit_val
+            };
+
+            if lit_val == 1 {
+                any_literal_one = true;
+            }
+        }
+    }
+    any_literal_one
 }
 
 #[test]
@@ -288,4 +354,217 @@ fn test_determinism() {
     let pos1 = build_pos_result(4, &off, &dc);
     let pos2 = build_pos_result(4, &off, &dc);
     assert_eq!(pos1.expression_plain, pos2.expression_plain);
+}
+
+// Independent brute-force minimum cover oracle for small variable counts (2 and 3 vars)
+// Generates all 3^n possible product terms, identifies valid implicants, and finds
+// the exact global minimum (fewest terms, then fewest literals) by exhaustive combinatorial search.
+fn brute_force_sop_oracle(on_terms: &[usize], dc_terms: &[usize], num_vars: usize) -> (usize, usize) {
+    if on_terms.is_empty() {
+        return (0, 0);
+    }
+
+    let total_cells = 1 << num_vars;
+    let mut allowed_mask = 0u32;
+    for &m in on_terms {
+        allowed_mask |= 1 << m;
+    }
+    for &m in dc_terms {
+        allowed_mask |= 1 << m;
+    }
+
+    let req_mask: u32 = on_terms.iter().map(|&m| 1u32 << m).sum();
+    let universal_mask = (1u32 << total_cells) - 1;
+    if (allowed_mask & universal_mask) == universal_mask {
+        return (1, 0);
+    }
+
+    let total_possible_terms = 3usize.pow(num_vars as u32);
+    let mut valid_terms: Vec<(u32, usize)> = Vec::new();
+
+    for term_code in 0..total_possible_terms {
+        let mut temp = term_code;
+        let mut term_mask = 0u8;
+        let mut term_val = 0u8;
+        let mut lits = 0;
+
+        for v in 0..num_vars {
+            let state = temp % 3;
+            temp /= 3;
+            let bit = num_vars - 1 - v;
+            match state {
+                0 => {
+                    term_mask |= 1 << bit;
+                    lits += 1;
+                }
+                1 => {
+                    term_mask |= 1 << bit;
+                    term_val |= 1 << bit;
+                    lits += 1;
+                }
+                _ => {}
+            }
+        }
+
+        let mut covered = 0u32;
+        for m in 0..total_cells {
+            let m_u8 = m as u8;
+            if (m_u8 & term_mask) == term_val {
+                covered |= 1 << m;
+            }
+        }
+
+        if (covered & !allowed_mask) == 0 && (covered & req_mask) != 0 {
+            valid_terms.push((covered, lits));
+        }
+    }
+
+    let mut best_cost = (usize::MAX, usize::MAX);
+
+    for max_k in 1..=valid_terms.len() {
+        if max_k > best_cost.0 {
+            break;
+        }
+
+        fn comb(
+            idx: usize,
+            terms_left: usize,
+            covered: u32,
+            lits: usize,
+            req: u32,
+            valid_terms: &[(u32, usize)],
+            best_cost: &mut (usize, usize),
+            max_k: usize,
+        ) {
+            if terms_left == 0 {
+                if (covered & req) == req {
+                    let cost = (max_k, lits);
+                    if cost < *best_cost {
+                        *best_cost = cost;
+                    }
+                }
+                return;
+            }
+
+            if idx >= valid_terms.len() || (valid_terms.len() - idx) < terms_left {
+                return;
+            }
+
+            comb(
+                idx + 1,
+                terms_left - 1,
+                covered | valid_terms[idx].0,
+                lits + valid_terms[idx].1,
+                req,
+                valid_terms,
+                best_cost,
+                max_k,
+            );
+
+            comb(
+                idx + 1,
+                terms_left,
+                covered,
+                lits,
+                req,
+                valid_terms,
+                best_cost,
+                max_k,
+            );
+        }
+
+        comb(0, max_k, 0, 0, req_mask, &valid_terms, &mut best_cost, max_k);
+        if best_cost.0 <= max_k {
+            break;
+        }
+    }
+
+    best_cost
+}
+
+#[test]
+fn test_optimality_against_independent_brute_force_oracle() {
+    // 1. Verify Quine-McCluskey optimality across ALL 16 2-variable functions
+    for func in 0..16u16 {
+        let mut on_terms = Vec::new();
+        for m in 0..4 {
+            if ((func >> m) & 1) == 1 {
+                on_terms.push(m);
+            }
+        }
+        let sop = build_sop_result(2, &on_terms, &[]);
+        let (oracle_terms, oracle_lits) = brute_force_sop_oracle(&on_terms, &[], 2);
+
+        assert_eq!(
+            sop.term_count, oracle_terms,
+            "2-var term count non-optimal for func {}",
+            func
+        );
+        assert_eq!(
+            sop.literal_count, oracle_lits,
+            "2-var literal count non-optimal for func {}",
+            func
+        );
+    }
+
+    // 2. Verify Quine-McCluskey optimality across sample 3-variable functions
+    for func in (0..256u16).step_by(5) {
+        let mut on_terms = Vec::new();
+        for m in 0..8 {
+            if ((func >> m) & 1) == 1 {
+                on_terms.push(m);
+            }
+        }
+        let sop = build_sop_result(3, &on_terms, &[]);
+        let (oracle_terms, oracle_lits) = brute_force_sop_oracle(&on_terms, &[], 3);
+
+        assert_eq!(
+            sop.term_count, oracle_terms,
+            "3-var term count non-optimal for func {}",
+            func
+        );
+        assert_eq!(
+            sop.literal_count, oracle_lits,
+            "3-var literal count non-optimal for func {}",
+            func
+        );
+    }
+}
+
+#[test]
+fn test_all_65536_functions_4_vars_exhaustive() {
+    // Exhaustive mathematical verification across all 65,536 4-variable Boolean functions
+    for func_int in 0..=0xFFFFu32 {
+        let mut on_terms = Vec::new();
+        let mut off_terms = Vec::new();
+
+        for m in 0..16 {
+            let bit = ((func_int >> m) & 1) as u8;
+            if bit == 1 {
+                on_terms.push(m);
+            } else {
+                off_terms.push(m);
+            }
+        }
+
+        let sop = build_sop_result(4, &on_terms, &[]);
+        let pos = build_pos_result(4, &off_terms, &[]);
+
+        for m in 0..16 {
+            let expected = ((func_int >> m) & 1) as u8;
+            let sop_val = eval_sop(&sop, m, 4);
+            let pos_val = eval_pos(&pos, m, 4);
+
+            assert_eq!(
+                sop_val, expected,
+                "Exhaustive 4-var SoP failed for func #{:04x} at minterm {}",
+                func_int, m
+            );
+            assert_eq!(
+                pos_val, expected,
+                "Exhaustive 4-var PoS failed for func #{:04x} at minterm {}",
+                func_int, m
+            );
+        }
+    }
 }

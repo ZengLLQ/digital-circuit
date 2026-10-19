@@ -108,13 +108,15 @@ cd src-tauri
 cargo test
 ```
 
-Test suite coverage:
-1. Exhaustive verification of all 16 possible 2-variable functions ($F_{SoP}$ and $F_{PoS}$ tested against every row).
-2. Exhaustive verification of all 256 possible 3-variable functions ($F_{SoP}$ and $F_{PoS}$ tested against every row).
-3. Extensive 4-variable verification suite testing symmetric functions, parity (XOR), 4-corner wraparounds, singletons, constant 0/1, and 500+ pseudo-random functions.
-4. Gray-code coordinate and toroidal adjacency verification.
-5. Don't-care condition optimization tests.
-6. Determinism consistency tests.
+Test suite coverage (21 automated tests):
+1. Exhaustive verification of all 16 possible 2-variable functions ($F_{SoP}$ and $F_{PoS}$ tested against every row with algebraic formula evaluation).
+2. Exhaustive verification of all 256 possible 3-variable functions ($F_{SoP}$ and $F_{PoS}$ tested against every row with algebraic formula evaluation).
+3. **Exhaustive verification of all 65,536 possible 4-variable functions** ($F_{SoP}$ and $F_{PoS}$ mathematically evaluated against all 16 minterm combinations).
+4. **Independent brute-force combinatorial oracle** verifying that Quine-McCluskey finds the exact mathematical minimum terms and literals.
+5. Toroidal Gray-code coordinate and 4-way adjacency verification.
+6. Don't-care condition optimization tests.
+7. Pure determinism consistency tests across repeated evaluations.
+8. Safe confirmation workflows and unambiguous state preservation across variable switching.
 
 ### Building for Release
 

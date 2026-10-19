@@ -6,6 +6,7 @@ interface TruthTableProps {
   varNames: string[];
   hoveredMinterm: number | null;
   selectedMinterm: number | null;
+  activeGroupMinterms?: number[];
   onHoverMinterm: (m: number | null) => void;
   onSelectMinterm: (m: number) => void;
   onToggleOutput: (index: number) => void;
@@ -19,6 +20,7 @@ export const TruthTable: React.FC<TruthTableProps> = ({
   varNames,
   hoveredMinterm,
   selectedMinterm,
+  activeGroupMinterms,
   onHoverMinterm,
   onSelectMinterm,
   onToggleOutput,
@@ -115,6 +117,7 @@ export const TruthTable: React.FC<TruthTableProps> = ({
             {rows.map((row) => {
               const isHovered = hoveredMinterm === row.index;
               const isSelected = selectedMinterm === row.index;
+              const isGroupMember = activeGroupMinterms?.includes(row.index);
 
               let outputBadgeClass = "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400";
               if (row.output === "1") {
@@ -140,6 +143,8 @@ export const TruthTable: React.FC<TruthTableProps> = ({
                       ? "bg-cyan-50/70 dark:bg-cyan-950/30 ring-1 ring-inset ring-cyan-500/50"
                       : isHovered
                       ? "bg-slate-50 dark:bg-slate-800/40"
+                      : isGroupMember
+                      ? "bg-cyan-50/35 dark:bg-cyan-950/20 border-l-2 border-l-cyan-500"
                       : "hover:bg-slate-50/60 dark:hover:bg-slate-800/20"
                   }`}
                 >

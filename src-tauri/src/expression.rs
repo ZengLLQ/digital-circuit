@@ -11,6 +11,19 @@ pub fn build_sop_result(
     let total_cells = 1 << num_vars;
     let var_names = get_variable_names(num_vars);
 
+    if dc_terms.len() == total_cells {
+        return MinimizationResult {
+            expression_formatted: "0".to_string(),
+            expression_plain: "0".to_string(),
+            term_count: 0,
+            literal_count: 0,
+            groups: Vec::new(),
+            is_constant_zero: true,
+            is_constant_one: false,
+            is_all_dont_care: true,
+        };
+    }
+
     if on_terms.is_empty() {
         return MinimizationResult {
             expression_formatted: "0".to_string(),
@@ -20,7 +33,7 @@ pub fn build_sop_result(
             groups: Vec::new(),
             is_constant_zero: true,
             is_constant_one: false,
-            is_all_dont_care: dc_terms.len() == total_cells,
+            is_all_dont_care: false,
         };
     }
 
@@ -111,8 +124,22 @@ pub fn build_pos_result(
     let total_cells = 1 << num_vars;
     let var_names = get_variable_names(num_vars);
 
+    if dc_terms.len() == total_cells {
+        // Documented deterministic convention: all unspecified cells evaluate to F = 0
+        return MinimizationResult {
+            expression_formatted: "0".to_string(),
+            expression_plain: "0".to_string(),
+            term_count: 0,
+            literal_count: 0,
+            groups: Vec::new(),
+            is_constant_zero: true,
+            is_constant_one: false,
+            is_all_dont_care: true,
+        };
+    }
+
     if off_terms.is_empty() {
-        // No 0s: function is constant 1
+        // No 0s and not all don't care: function is constant 1
         return MinimizationResult {
             expression_formatted: "1".to_string(),
             expression_plain: "1".to_string(),
@@ -121,7 +148,7 @@ pub fn build_pos_result(
             groups: Vec::new(),
             is_constant_zero: false,
             is_constant_one: true,
-            is_all_dont_care: dc_terms.len() == total_cells,
+            is_all_dont_care: false,
         };
     }
 
@@ -413,5 +440,16 @@ mod tests {
         let pos_0 = build_pos_result(2, &[0, 1, 2, 3], &[]);
         assert!(pos_0.is_constant_zero);
         assert_eq!(pos_0.expression_formatted, "0");
+
+        // All don't care: deterministic convention F = 0
+        let sop_dc = build_sop_result(2, &[], &[0, 1, 2, 3]);
+        assert!(sop_dc.is_all_dont_care);
+        assert!(sop_dc.is_constant_zero);
+        assert_eq!(sop_dc.expression_formatted, "0");
+
+        let pos_dc = build_pos_result(2, &[], &[0, 1, 2, 3]);
+        assert!(pos_dc.is_all_dont_care);
+        assert!(pos_dc.is_constant_zero);
+        assert_eq!(pos_dc.expression_formatted, "0");
     }
 }
