@@ -1,72 +1,193 @@
-# Karnaugh Studio — Modern Karnaugh Map & Boolean Minimizer Desktop Application
+# Karnaugh Studio — Modern Digital Circuit & Boolean Minimizer Desktop Application
 
 <p align="center">
   <img src="./app-icon.svg" width="128" height="128" alt="Karnaugh Studio Logo" />
 </p>
 
-**Karnaugh Studio** is a modern, high-performance desktop application engineered for students, educators, and digital logic designers to visualize, learn, and simplify Boolean logic functions using Karnaugh maps (K-maps).
+<p align="center">
+  <b>A modern, high-performance desktop application for digital logic design, interactive multi-output truth tables, and real-time Karnaugh map Boolean minimization with automatic vector grouping.</b>
+</p>
 
-Built with **Rust** and **Tauri 2** with a restrained, modern frontend inspired by Linear and Raycast, the application pairs mathematical rigor (an exact Quine–McCluskey minimization engine with Petrick/branch-and-bound minimum-cost cover) with vector visual grouping and educational explanations.
+<p align="center">
+  <img src="https://img.shields.io/badge/Rust-1.80+-orange.svg?logo=rust" alt="Rust" />
+  <img src="https://img.shields.io/badge/Tauri-2.0-blue.svg?logo=tauri" alt="Tauri 2" />
+  <img src="https://img.shields.io/badge/React-19-cyan.svg?logo=react" alt="React 19" />
+  <img src="https://img.shields.io/badge/TypeScript-5.0+-blue.svg?logo=typescript" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/TailwindCSS-v4-38bdf8.svg?logo=tailwindcss" alt="Tailwind CSS" />
+  <img src="https://img.shields.io/badge/Platform-Windows%20x64-0078d4.svg?logo=windows" alt="Windows x64" />
+</p>
 
 ---
 
-## Features
+## Overview
 
-- **Multi-Variable Support**:
-  - **2-Variable Maps** ($2 \times 2$ grid, variables $A, B$)
-  - **3-Variable Maps** ($2 \times 4$ grid, variables $A, B, C$)
-  - **4-Variable Maps** ($4 \times 4$ grid, variables $A, B, C, D$)
-- **Mathematically Sound Gray-Code Topology**:
-  - Exact reflected binary Gray-code axis headers ($00, 01, 11, 10$).
-  - Full toroidal adjacency support: horizontal edge wraparound, vertical edge wraparound, and 4-corner grouping ($m_0, m_2, m_8, m_{10} \implies B'D'$).
-- **Interactive, Bi-Directional Truth Table**:
-  - Full $2^n$ rows in standard binary order with MSB-first ordering.
-  - Cycle outputs directly ($0 \to 1 \to X \to 0$) via mouse click or keyboard navigation (`0`, `1`, `X`, `Space`, `Enter`).
-  - Batch actions: **All 0**, **All 1**, **Invert**.
-  - Synchronous cell-by-cell update with the K-map grid.
-- **Automatic Color-Coded Vector Overlays**:
-  - Groups rendered using precise SVG vector overlays that scale and align seamlessly.
-  - Proper handling of wraparounds: groups spanning opposite edges or corners are visualized as disjoint rounded boundaries with unified colors and $G_n$ badges, never crossing through unrelated middle cells.
-  - Distinct accessible color palette (Cyan, Violet, Amber, Emerald, Rose, Blue, Teal, Fuchsia) optimized for both light and dark modes.
-  - Overlays toggle to easily inspect raw cell values.
-- **Dual Minimization (SoP & PoS)**:
-  - **Sum of Products (SoP)**: Minimal product terms joined by OR ($F = A'B + BC'$).
-  - **Product of Sums (PoS)**: Minimal sum terms joined by AND ($F = (A + B')(B + C)$).
-  - Accurate algebraic handling of complements and maxterms.
-  - Literals count and term count metrics.
-  - One-click copy for plain-text algebraic expressions.
-- **Educational Explanations & Insights**:
-  - Contextual explanation for every group: explains why variables eliminated ($2^k$ cells eliminate $k$ variables via consensus identity $X + X' = 1$), toroidal boundary reasons, essential prime implicant justification, and don't-care effects.
-  - Built-in educational guide modal explaining Karnaugh map axioms and rules.
-- **Robust Edge Case Handling**:
+**Karnaugh Studio** is an educational and professional-grade desktop application built with **Rust** and **Tauri 2**, featuring an elegant **Antigravity Dark Theme** inspired by Linear and Raycast. It pairs exact mathematical Boolean algebra algorithms with reactive, interactive vector visualization to help students, computer engineers, and hardware designers master Boolean minimization.
+
+---
+
+## Key Features
+
+### 1. Interactive Multi-Output Truth Table
+- **Two-Tier Categorized Columns**: Clearly organized into **`m`** (minterm index), **`Input`** variables, and **`Output`** functions.
+- **Multi-Output Engine (`O0`, `O1`, `O2`, ...)**:
+  - Add arbitrary output functions via the **`+ Add`** button in the Truth Table header.
+  - Switch active output tabs to analyze, map, and minimize distinct logic functions from the same truth table inputs.
+  - Delete extra output columns when no longer needed.
+- **Bi-Directional Cell Editing**:
+  - Click any truth table cell or select via keyboard to cycle through `0 -> 1 -> X` (don't care).
+  - Quick batch operations: **All 0**, **All 1**, and **Invert** (preserves don't cares).
+  - Full keyboard accessibility: `ArrowUp`/`ArrowDown` row navigation, `0`, `1`, `X`, `Space`, and `Enter`.
+
+### 2. Arbitrary & Customizable Variable Naming
+- **Default Sequential Identifiers**:
+  - **4 Variables**: `IN1`, `IN2`, `IN3`, `IN4`
+  - **3 Variables**: `IN1`, `IN2`, `IN3`
+  - **2 Variables**: `IN1`, `IN2`
+- **Inline Click-to-Edit**: Click any input variable in the table header to rename it on the fly (e.g., `CLK`, `RESET`, `ENABLE`, `A`, `B`).
+- **Synchronized Throughout UI**: Custom names immediately propagate to the K-Map axes, minterm coordinates, educational explanations, and final algebraic SoP/PoS formulas.
+- **Preserved Across Configurations**: Custom variable names are cached and maintained when switching between 2, 3, and 4 variables.
+
+### 3. Standardized Karnaugh Map Layout & Axis Orientations
+Exact Gray-code reflected binary axes with high-contrast diagonal variable dividers:
+- **4-Variable Map ($4 \times 4$ grid, 16 cells)**:
+  $$\text{Row Axis: } \mathbf{IN3\ IN4} \quad \backslash \quad \text{Column Axis: } \mathbf{IN1\ IN2}$$
+- **3-Variable Map ($2 \times 4$ grid, 8 cells)**:
+  $$\text{Row Axis: } \mathbf{IN2\ IN3} \quad \backslash \quad \text{Column Axis: } \mathbf{IN1}$$
+- **2-Variable Map ($2 \times 2$ grid, 4 cells)**:
+  $$\text{Row Axis: } \mathbf{IN2} \quad \backslash \quad \text{Column Axis: } \mathbf{IN1}$$
+
+The top-left corner features an authentic **SVG diagonal divider**, highlighting Column variables in Sky-Blue (`#38bdf8`) and Row variables in Violet (`#a78bfa`).
+
+### 4. Real-Time Auto Circle & Grouping Contours
+- **Prominent Vector Highlighting**:
+  - Groups are rendered in real time as smooth, rounded contours (*true circles* for $1 \times 1$ groups, *stadium pills* for 1-span rows/columns, and rounded bounding blocks for multi-cell areas).
+  - Permanent glowing drop-shadow contours designed for dark mode readability.
+- **Full Toroidal Wraparound Support**:
+  - Horizontal boundary wraparound (left-to-right edges).
+  - Vertical boundary wraparound (top-to-bottom edges).
+  - Four-corner grouping ($m_0, m_2, m_8, m_{10} \implies IN2' \cdot IN4'$), displayed cleanly as disjoint corner segments without drawing confusing lines across unrelated middle cells.
+- **Non-Blocking Click-Through**:
+  - The SVG contour layer is configured with `pointer-events-none`, allowing direct editing of K-map cells underneath without interference.
+- **Unobtrusive Group Badges**:
+  - Group badges ($G_1, G_2, \dots$) are anchored to the bottom-right of primary segments, ensuring that cell minterm labels ($m_n$) at the top-left remain completely visible.
+
+### 5. Dual Boolean Minimization (Rust Core Engine)
+- **Sum of Products (SoP)**: Minimal AND-terms joined by OR ($F = IN1' \cdot IN2 + IN2 \cdot IN4'$).
+- **Product of Sums (PoS)**: Minimal OR-terms joined by AND ($F = (IN1 + IN2')(IN2 + IN4)$).
+- **Exact Algorithm**:
+  1. Quine–McCluskey prime implicant generation.
+  2. Prime implicant chart reduction with essential prime implicant extraction.
+  3. Petrick / Branch-and-bound minimum-cost set cover:
+     - Primary objective: **Minimum number of terms**.
+     - Secondary objective: **Minimum total literals**.
+     - Deterministic tie-breaking for repeatable results.
+- **Edge-Case Handling**:
   - Constant 0 ($F = 0$).
   - Constant 1 ($F = 1$).
-  - All don't-care functions ($F = 0$, with clear indicator).
-  - Pure deterministic tie-breaking.
+  - All don't-care functions ($F = 0$ deterministic convention with explicit educational status indicator).
+
+### 6. Educational Insights & Pedagogical Feedback
+- **Consensus & Variable Elimination**: Click any term or group badge to inspect which variables disappear and why (consensus theorem $X + X' = 1$, eliminating $k$ variables across a group of size $2^k$).
+- **Integrated Guide Modal**: Explains fundamental Karnaugh map axioms, power-of-two group rules, Gray-code adjacency, and don't-care optimization techniques.
+
+### 7. Antigravity Dark Theme & Inter Typography
+- **Deep Slate & Charcoal Palette**: `#0a0a0c` canvas, `#121316` cards, `#202228` borders, and `#7c3aed` / `#a78bfa` violet active accents.
+- **High-Contrast Readability**: WCAG AA compliant text contrast across all logic values ($0$, $1$, $X$, minterms, and coordinates).
+- **Full Inter Font Spectrum**: Bundled offline with `@fontsource/inter` (weights 300 to 900, normal and italic) with OpenType tabular lining figures (`tabular-nums`) for fixed-width digit alignment.
+- **Native Window Dark Theme**: Tauri window configured with native Windows DWM dark titlebar and border rendering.
+
+---
+
+## Mathematical Verification & Test Suite
+
+The Rust engine includes an exhaustive mathematical verification test suite with **21 automated tests**:
+
+```bash
+cd src-tauri
+cargo test
+```
+
+### Verified Test Cases:
+1. **Exhaustive 4-Variable Verification (`test_all_65536_functions_4_vars_exhaustive`)**:
+   - Programmatically tests all **65,536** four-variable Boolean functions.
+   - Parses the generated algebraic string formulas (`term_plain` / `expression_plain`) and evaluates them against every minterm binary combination ($0..15$) to guarantee $100\%$ functional equivalence for both SoP and PoS.
+2. **Independent Combinatorial Oracle (`test_optimality_against_independent_brute_force_oracle`)**:
+   - Searches all $3^n$ possible product terms via an independent brute-force algorithm to prove that Quine–McCluskey achieves the absolute global minimum in terms and literals.
+3. **Exhaustive 2-Variable (16 functions) & 3-Variable (256 functions) Tests**.
+4. **Toroidal Gray-Code Adjacency & Wraparound Tests**.
+5. **Four-Corner Group Isolation ($m_0, m_2, m_8, m_{10}$)**.
+6. **Don't-Care Optimization Verification**.
+7. **Pure Determinism Consistency Across Repeated Runs**.
 
 ---
 
 ## Technology Stack
 
-- **Core Engine & Desktop Shell**: Rust (1.98+), Tauri 2
-- **Frontend Framework**: React 19, TypeScript
-- **Styling**: Tailwind CSS v4, Lucide Icons
-- **Build Tooling**: Vite 8
-- **Packaging**: Windows NSIS Installer (`.exe`), Windows MSI (`.msi`), and standalone Release Binary (`.exe`)
+| Layer | Technologies |
+|---|---|
+| **Desktop Framework** | [Tauri 2](https://v2.tauri.app/) (native Windows webview, low memory footprint, zero telemetry) |
+| **Backend & Math Engine**| [Rust](https://www.rust-lang.org/) (Quine–McCluskey, Petrick cover, Gray-code mapper) |
+| **Frontend Framework** | [React 19](https://react.dev/), [TypeScript](https://www.typescriptlang.org/) |
+| **Styling & Theme** | [Tailwind CSS v4](https://tailwindcss.com/) (Antigravity Dark Theme) |
+| **Typography** | [Inter](https://rsms.me/inter/) via `@fontsource/inter` (300–900 normal & italic, tabular nums) |
+| **Icons** | [Lucide React](https://lucide.dev/) |
+| **Build Tooling** | [Vite 8](https://vitejs.dev/) |
+| **Packaging & Installers**| Windows NSIS Installer (`.exe`), Windows MSI (`.msi`) |
 
 ---
 
-## Installation & Artifact Locations
+## Directory Structure
 
-### Generated Build Artifacts
+```text
+├── .github/workflows/
+│   └── build.yml               # CI/CD Windows packaging workflow
+├── src/                        # React + TypeScript Frontend
+│   ├── api.ts                  # Tauri IPC invoke bridge & web fallback
+│   ├── App.css                 # Tailwind CSS styling, Inter font, custom dark scrollbars
+│   ├── App.tsx                 # Root layout, multi-output state, reactive solver
+│   ├── main.tsx                # Entrypoint with complete Inter font weight bundle
+│   ├── types/
+│   │   └── kmap.ts             # TypeScript interfaces mirroring Rust models
+│   ├── utils/
+│   │   ├── colors.ts           # Accessible group color palette (Antigravity violet, cyan, etc.)
+│   │   └── solver.ts           # Client-side fallback solver for browser demo mode
+│   └── components/
+│       ├── Header.tsx          # Titlebar, variable selector (2/3/4), reset, help guide
+│       ├── TruthTable.tsx      # Two-tier categorized table, multi-output, inline var rename
+│       ├── KarnaughMap.tsx     # Gray-code grid, SVG diagonal header, keyboard navigation
+│       ├── GroupOverlay.tsx    # SVG vector group contours, true circles, non-blocking click
+│       ├── ResultsPanel.tsx    # SoP/PoS tabs, term counts, literal counts, copy, consensus cards
+│       ├── EducationalModal.tsx# Educational student guide & K-map axioms
+│       └── ResetConfirmModal.tsx# Confirmation dialog before resetting user inputs
+├── src-tauri/                  # Rust Backend Engine
+│   ├── Cargo.toml              # Rust crate manifest & dependencies
+│   ├── tauri.conf.json         # Tauri 2 configuration & dark window metadata
+│   ├── icons/                  # Windows icons (.ico, .png, .icns, tile logos)
+│   └── src/
+│       ├── main.rs             # Desktop application entry point
+│       ├── lib.rs              # Tauri command dispatch & plugin setup
+│       ├── commands.rs         # IPC commands (solve_kmap, get_default_truth_table)
+│       ├── models.rs           # Shared serializable data models
+│       ├── truth_table.rs      # Truth table generation & term extraction
+│       ├── kmap.rs             # Gray code ordering & wraparound rect mapping
+│       ├── minimizer.rs        # Quine-McCluskey & minimum-cost branch-and-bound cover
+│       ├── expression.rs       # SoP/PoS formatting & pedagogical explanations
+│       └── verification_tests.rs# Exhaustive 65,536-function test suite & brute force oracle
+├── app-icon.svg                # Master vector application logo
+└── package.json                # NPM configuration & build scripts
+```
 
-The application has been compiled and packaged for Windows x64:
+---
+
+## Installation & Distribution
+
+Pre-built Windows release packages are available directly in the build output directory:
 
 - **Windows NSIS Installer (`.exe`)**:
   ```
   src-tauri/target/release/bundle/nsis/Karnaugh Studio_1.0.0_x64-setup.exe
   ```
-- **Windows MSI Installer (`.msi`)**:
+- **Windows MSI Package (`.msi`)**:
   ```
   src-tauri/target/release/bundle/msi/Karnaugh Studio_1.0.0_x64_en-US.msi
   ```
@@ -75,101 +196,39 @@ The application has been compiled and packaged for Windows x64:
   src-tauri/target/release/karnaugh-studio.exe
   ```
 
-To install, simply execute `Karnaugh Studio_1.0.0_x64-setup.exe`. It configures desktop and start menu shortcuts with the custom application icon.
-
 ---
 
-## Development & Building
+## Development Guide
 
 ### Prerequisites
-
 - [Node.js](https://nodejs.org/) (v20+ recommended)
-- [Rust](https://www.rust-lang.org/) (1.80+ recommended)
-- Visual Studio C++ Build Tools (on Windows)
+- [Rust](https://www.rust-lang.org/) (v1.80+ recommended)
+- Microsoft Visual Studio C++ Build Tools (for Windows desktop compilation)
 
-### Running in Development Mode
-
-To start the Vite frontend development server alongside the Tauri desktop window:
-
+### Quick Start
 ```bash
-# Install frontend dependencies
+# 1. Install frontend dependencies
 npm install
 
-# Run Tauri desktop app in dev mode (hot reload enabled)
+# 2. Launch the desktop application in development mode (hot-reload enabled)
 npm run tauri dev
 ```
 
-### Running Automated Verification Tests
-
-The Boolean minimization and K-map engine includes exhaustive verification tests:
-
+### Running Tests
 ```bash
+# Run all unit tests and exhaustive 65,536 mathematical verifications
 cd src-tauri
 cargo test
 ```
 
-Test suite coverage (21 automated tests):
-1. Exhaustive verification of all 16 possible 2-variable functions ($F_{SoP}$ and $F_{PoS}$ tested against every row with algebraic formula evaluation).
-2. Exhaustive verification of all 256 possible 3-variable functions ($F_{SoP}$ and $F_{PoS}$ tested against every row with algebraic formula evaluation).
-3. **Exhaustive verification of all 65,536 possible 4-variable functions** ($F_{SoP}$ and $F_{PoS}$ mathematically evaluated against all 16 minterm combinations).
-4. **Independent brute-force combinatorial oracle** verifying that Quine-McCluskey finds the exact mathematical minimum terms and literals.
-5. Toroidal Gray-code coordinate and 4-way adjacency verification.
-6. Don't-care condition optimization tests.
-7. Pure determinism consistency tests across repeated evaluations.
-8. Safe confirmation workflows and unambiguous state preservation across variable switching.
-
-### Building for Release
-
-To produce production builds and Windows installers:
-
+### Building Release Package
 ```bash
-# Build frontend and compile release binary + NSIS installer
+# Compile optimized frontend, compile Rust release binary, and bundle NSIS/MSI installers
 npm run tauri build
-```
-
----
-
-## Project Structure
-
-```
-├── .github/workflows/
-│   └── build.yml               # CI/CD Windows packaging workflow
-├── src/                        # React + TypeScript Frontend
-│   ├── api.ts                  # Tauri IPC invoke bridge & web fallback
-│   ├── App.css                 # Tailwind CSS styling & root themes
-│   ├── App.tsx                 # Main layout & cross-component state
-│   ├── main.tsx                # React entry point
-│   ├── types/
-│   │   └── kmap.ts             # TypeScript interfaces mirroring Rust models
-│   ├── utils/
-│   │   └── colors.ts           # Accessible group color palette
-│   └── components/
-│       ├── Header.tsx          # Titlebar, variable selector, theme toggle
-│       ├── TruthTable.tsx      # Editable truth table with keyboard navigation
-│       ├── KarnaughMap.tsx     # Gray-code grid & cell rendering
-│       ├── GroupOverlay.tsx    # SVG vector group contours & badges
-│       ├── ResultsPanel.tsx    # SoP/PoS tabs, expressions & explanations
-│       └── EducationalModal.tsx# Educational student guide
-├── src-tauri/                  # Rust Backend Engine
-│   ├── Cargo.toml              # Rust crate manifest & dependencies
-│   ├── tauri.conf.json         # Tauri 2 configuration & bundle metadata
-│   ├── icons/                  # Generated Windows icons (.ico, .png, .icns)
-│   └── src/
-│       ├── main.rs             # Desktop executable entry
-│       ├── lib.rs              # Tauri plugin setup & command dispatch
-│       ├── commands.rs         # Tauri IPC commands (solve_kmap, etc.)
-│       ├── models.rs           # Shared serializable data models
-│       ├── truth_table.rs      # Truth table generation & term extraction
-│       ├── kmap.rs             # Gray code ordering & rect mapping
-│       ├── minimizer.rs        # Quine-McCluskey & exact minimum cover
-│       ├── expression.rs       # SoP/PoS formatting & pedagogical explanations
-│       └── verification_tests.rs# Exhaustive unit & mathematical tests
-├── app-icon.svg                # Master application logo
-└── package.json                # NPM configuration & build scripts
 ```
 
 ---
 
 ## License
 
-MIT License. Designed and engineered for modern computer engineering education.
+This project is licensed under the [MIT License](LICENSE).
