@@ -17,7 +17,7 @@ interface KarnaughMapProps {
   onSelectGroup: (id: string | null) => void;
   onToggleCell: (minterm: number) => void;
   onSetCellOutput?: (minterm: number, val: OutputValue) => void;
-  isDark: boolean;
+  isDark?: boolean;
 }
 
 export const KarnaughMap: React.FC<KarnaughMapProps> = ({
@@ -34,7 +34,6 @@ export const KarnaughMap: React.FC<KarnaughMapProps> = ({
   onSelectGroup,
   onToggleCell,
   onSetCellOutput,
-  isDark,
 }) => {
   const rowCount = grid.cells.length;
   const colCount = grid.cells[0]?.length ?? 2;
@@ -93,18 +92,18 @@ export const KarnaughMap: React.FC<KarnaughMapProps> = ({
   };
 
   return (
-    <div className="flex flex-col items-center justify-center p-6 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs select-none">
+    <div className="flex flex-col items-center justify-center p-6 bg-[#121316] rounded-xl border border-[#202228] shadow-lg select-none">
       {/* Top Legend / Guide */}
-      <div className="w-full flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400">
+      <div className="w-full flex items-center justify-between pb-4 border-b border-[#202228] text-xs text-[#8c919e]">
         <div className="flex items-center gap-2">
-          <span className="font-semibold text-slate-700 dark:text-slate-300">
+          <span className="font-semibold text-[#f3f4f6]">
             {grid.num_vars}-Variable K-Map
           </span>
-          <span className="text-[11px] font-mono text-slate-400">
+          <span className="text-[11px] font-mono text-[#8c919e] italic">
             (Gray Code: Adjacent cells differ by 1 bit)
           </span>
         </div>
-        <div className="text-[11px] text-slate-400">
+        <div className="text-[11px] font-normal italic text-[#9ca3af]">
           Click or [0, 1, X, Space] to edit
         </div>
       </div>
@@ -115,14 +114,14 @@ export const KarnaughMap: React.FC<KarnaughMapProps> = ({
         <div className="flex items-end">
           {/* Top-left corner diagonal label */}
           <div
-            className="flex items-center justify-center text-xs font-mono font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 mr-2 mb-2"
+            className="flex items-center justify-center text-xs font-mono font-semibold text-[#e4e4e7] bg-[#18191e] rounded-lg border border-[#262832] mr-2 mb-2"
             style={{ width: cellSize, height: 44 }}
             title={`Rows: ${rowVarsLabel} \\ Columns: ${colVarsLabel}`}
           >
             <div className="text-center leading-none">
-              <span className="text-cyan-600 dark:text-cyan-400">{rowVarsLabel}</span>
-              <span className="text-slate-400 dark:text-slate-500 mx-1">\</span>
-              <span className="text-violet-600 dark:text-violet-400">{colVarsLabel}</span>
+              <span className="text-[#a78bfa] font-bold">{rowVarsLabel}</span>
+              <span className="text-[#71717a] mx-1 font-light">\</span>
+              <span className="text-[#38bdf8] font-bold">{colVarsLabel}</span>
             </div>
           </div>
 
@@ -137,7 +136,7 @@ export const KarnaughMap: React.FC<KarnaughMapProps> = ({
             {grid.col_headers.map((hdr, cIdx) => (
               <div
                 key={cIdx}
-                className="h-11 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-700/80 font-mono text-xs font-semibold text-slate-700 dark:text-slate-300"
+                className="h-11 flex flex-col items-center justify-center bg-[#18191e] rounded-lg border border-[#262832] font-mono text-xs font-semibold text-[#e4e4e7]"
               >
                 <span>{hdr}</span>
               </div>
@@ -159,7 +158,7 @@ export const KarnaughMap: React.FC<KarnaughMapProps> = ({
               <div
                 key={rIdx}
                 style={{ width: cellSize }}
-                className="flex items-center justify-center bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-700/80 font-mono text-xs font-semibold text-slate-700 dark:text-slate-300"
+                className="flex items-center justify-center bg-[#18191e] rounded-lg border border-[#262832] font-mono text-xs font-semibold text-[#e4e4e7]"
               >
                 <span>{hdr}</span>
               </div>
@@ -191,33 +190,31 @@ export const KarnaughMap: React.FC<KarnaughMapProps> = ({
                     cell.minterm
                   );
 
-                  let valueClass = "text-slate-400 dark:text-slate-600 font-normal";
-                  let bgClass = "bg-slate-50 dark:bg-slate-800/30";
+                  let valueClass = "text-[#a1a1aa] font-semibold";
+                  let bgClass = "bg-[#15161b]";
 
                   if (cell.output === "1") {
-                    valueClass = "text-slate-900 dark:text-white font-bold";
-                    bgClass = "bg-white dark:bg-slate-800/80";
+                    valueClass = "text-[#ffffff] font-bold drop-shadow-[0_0_8px_rgba(255,255,255,0.45)]";
+                    bgClass = "bg-[#1d1f28]";
                   } else if (cell.output === "X") {
-                    valueClass = "text-amber-600 dark:text-amber-400 font-bold";
-                    bgClass = "bg-amber-50/50 dark:bg-amber-950/20";
+                    valueClass = "text-[#fbbf24] font-bold drop-shadow-[0_0_8px_rgba(251,191,36,0.35)]";
+                    bgClass = "bg-[#241d13]";
                   }
 
-                  let borderClass = "border-slate-200 dark:border-slate-700/70";
-                  let customStyle: React.CSSProperties = {
+                  let borderClass = "border-[#242630]";
+                  const customStyle: React.CSSProperties = {
                     width: cellSize,
                     height: cellSize,
                   };
 
                   if (isSelected) {
-                    borderClass = "ring-2 ring-cyan-500 border-cyan-500 z-20";
+                    borderClass = "ring-2 ring-[#7c3aed] border-[#7c3aed] bg-[#222432] z-20 shadow-[0_0_16px_rgba(124,58,237,0.4)]";
                   } else if (isHovered) {
-                    borderClass = "border-cyan-400 dark:border-cyan-600 z-20";
+                    borderClass = "border-[#8b5cf6] bg-[#1a1c26] z-20 shadow-[0_0_12px_rgba(139,92,246,0.25)]";
                   } else if (isGroupCovered && activeColor) {
-                    borderClass = "z-15 shadow-xs";
+                    borderClass = "z-15 shadow-sm";
                     customStyle.borderColor = activeColor.border;
-                    customStyle.backgroundColor = isDark
-                      ? activeColor.pillBgDark
-                      : activeColor.pillBgLight;
+                    customStyle.backgroundColor = activeColor.pillBgDark;
                   }
 
                   return (
@@ -235,16 +232,16 @@ export const KarnaughMap: React.FC<KarnaughMapProps> = ({
                       onMouseEnter={() => onHoverMinterm(cell.minterm)}
                       onMouseLeave={() => onHoverMinterm(null)}
                       style={customStyle}
-                      className={`relative flex flex-col items-center justify-center rounded-xl border transition-all cursor-pointer select-none outline-hidden focus:ring-2 focus:ring-cyan-500 ${bgClass} ${borderClass} hover:shadow-xs active:scale-95`}
+                      className={`relative flex flex-col items-center justify-center rounded-xl border transition-all cursor-pointer select-none outline-hidden focus:ring-2 focus:ring-[#7c3aed] ${bgClass} ${borderClass} hover:shadow-sm active:scale-95`}
                       title={`Minterm m${cell.minterm} (${cell.binary}) = ${cell.output}. Press 0, 1, X, or Space to edit.`}
                     >
                       {/* Secondary Minterm Index Label */}
-                      <span className="absolute top-1.5 left-2 text-[10px] font-mono text-slate-400 dark:text-slate-500">
+                      <span className="absolute top-1.5 left-2 text-[10px] font-mono font-medium text-[#9ca3af]">
                         m{cell.minterm}
                       </span>
 
                       {/* Binary Coordinates tooltip badge */}
-                      <span className="absolute top-1.5 right-2 text-[8px] font-mono text-slate-400 dark:text-slate-600 opacity-60">
+                      <span className="absolute top-1.5 right-2 text-[9px] font-mono font-medium text-[#8c919e]">
                         {cell.binary}
                       </span>
 

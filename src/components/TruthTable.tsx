@@ -59,37 +59,37 @@ export const TruthTable: React.FC<TruthTableProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
+    <div className="flex flex-col h-full bg-[#121316] rounded-xl border border-[#202228] shadow-lg overflow-hidden select-none">
       {/* Header bar */}
-      <div className="p-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-850/50">
+      <div className="p-3 border-b border-[#202228] flex items-center justify-between bg-[#15161a]">
         <div>
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-[#f3f4f6]">
             Truth Table
           </h2>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400">
+          <p className="text-[11px] text-[#8c919e] mt-0.5">
             {rows.length} rows ({varNames.join(", ")})
           </p>
         </div>
 
         {/* Quick Batch Controls */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
           <button
             onClick={() => onSetAll("0")}
-            className="px-2 py-0.5 text-[11px] font-medium rounded text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors"
+            className="px-2.5 py-0.5 text-[11px] font-medium rounded text-[#cbd0dc] hover:text-[#ffffff] bg-[#1d1f25] hover:bg-[#272933] border border-[#2a2c36] transition-colors cursor-pointer"
             title="Set all outputs to 0"
           >
             All 0
           </button>
           <button
             onClick={() => onSetAll("1")}
-            className="px-2 py-0.5 text-[11px] font-medium rounded text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors"
+            className="px-2.5 py-0.5 text-[11px] font-medium rounded text-[#cbd0dc] hover:text-[#ffffff] bg-[#1d1f25] hover:bg-[#272933] border border-[#2a2c36] transition-colors cursor-pointer"
             title="Set all outputs to 1"
           >
             All 1
           </button>
           <button
             onClick={onInvertAll}
-            className="px-2 py-0.5 text-[11px] font-medium rounded text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors"
+            className="px-2.5 py-0.5 text-[11px] font-medium rounded text-[#cbd0dc] hover:text-[#ffffff] bg-[#1d1f25] hover:bg-[#272933] border border-[#2a2c36] transition-colors cursor-pointer"
             title="Invert 0 and 1 outputs (preserves X)"
           >
             Invert
@@ -101,31 +101,31 @@ export const TruthTable: React.FC<TruthTableProps> = ({
       <div ref={tableRef} className="flex-1 overflow-y-auto overflow-x-hidden">
         <table className="w-full text-center border-collapse">
           <thead>
-            <tr className="sticky top-0 bg-slate-100 dark:bg-slate-800/90 text-slate-600 dark:text-slate-300 text-[11px] font-semibold tracking-wider border-b border-slate-200 dark:border-slate-700 z-10">
-              <th className="py-1.5 px-2 w-12 text-slate-400 dark:text-slate-500 font-mono">m</th>
+            <tr className="sticky top-0 bg-[#16171b]/95 backdrop-blur-xs text-[#9ca3af] text-[11px] font-semibold tracking-wider border-b border-[#22242d] z-10">
+              <th className="py-2 px-2 w-12 text-[#9ca3af] font-mono font-bold">m</th>
               {varNames.map((name) => (
-                <th key={name} className="py-1.5 px-2 font-mono">
+                <th key={name} className="py-2 px-2 font-mono font-bold text-[#f4f4f5]">
                   {name}
                 </th>
               ))}
-              <th className="py-1.5 px-2 w-16 text-cyan-600 dark:text-cyan-400 font-mono font-bold">
+              <th className="py-2 px-2 w-16 text-[#a78bfa] font-mono font-bold">
                 F
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+          <tbody className="divide-y divide-[#1c1d24] text-xs">
             {rows.map((row) => {
               const isHovered = hoveredMinterm === row.index;
               const isSelected = selectedMinterm === row.index;
               const isGroupMember = activeGroupMinterms?.includes(row.index);
 
-              let outputBadgeClass = "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400";
+              let outputBadgeClass = "bg-[#181920] text-[#cbd0dc] font-semibold border border-[#2b2d38] hover:text-[#ffffff] hover:border-[#3f4252]";
               if (row.output === "1") {
                 outputBadgeClass =
-                  "bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300 font-bold border border-cyan-300 dark:border-cyan-700/60 shadow-xs";
+                  "bg-[#7c3aed]/25 text-[#ede9fe] font-bold border border-[#7c3aed]/60 shadow-[0_0_12px_rgba(124,58,237,0.35)] hover:bg-[#7c3aed]/35";
               } else if (row.output === "X") {
                 outputBadgeClass =
-                  "bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 font-bold border border-amber-300 dark:border-amber-700/60";
+                  "bg-[#f59e0b]/20 text-[#fef3c7] font-bold border border-[#f59e0b]/50 shadow-[0_0_10px_rgba(245,158,11,0.25)] hover:bg-[#f59e0b]/30";
               }
 
               return (
@@ -140,16 +140,16 @@ export const TruthTable: React.FC<TruthTableProps> = ({
                   onClick={() => onSelectMinterm(row.index)}
                   className={`transition-colors cursor-pointer outline-hidden select-none ${
                     isSelected
-                      ? "bg-cyan-50/70 dark:bg-cyan-950/30 ring-1 ring-inset ring-cyan-500/50"
+                      ? "bg-[#242634] ring-1 ring-inset ring-[#7c3aed]/60"
                       : isHovered
-                      ? "bg-slate-50 dark:bg-slate-800/40"
+                      ? "bg-[#1c1d25]"
                       : isGroupMember
-                      ? "bg-cyan-50/35 dark:bg-cyan-950/20 border-l-2 border-l-cyan-500"
-                      : "hover:bg-slate-50/60 dark:hover:bg-slate-800/20"
+                      ? "bg-[#181923] border-l-2 border-l-[#7c3aed]"
+                      : "hover:bg-[#16171e]/70"
                   }`}
                 >
                   {/* Minterm Index */}
-                  <td className="py-1 px-2 text-[11px] font-mono text-slate-400 dark:text-slate-500">
+                  <td className="py-1 px-2 text-[11px] font-mono font-medium text-[#9ca3af]">
                     {row.index}
                   </td>
 
@@ -157,7 +157,7 @@ export const TruthTable: React.FC<TruthTableProps> = ({
                   {row.values.map((v, i) => (
                     <td
                       key={i}
-                      className="py-1 px-2 font-mono text-slate-700 dark:text-slate-300 font-medium"
+                      className="py-1 px-2 font-mono text-[#e4e4e7] font-medium"
                     >
                       {v}
                     </td>
@@ -171,7 +171,7 @@ export const TruthTable: React.FC<TruthTableProps> = ({
                         e.stopPropagation();
                         onToggleOutput(row.index);
                       }}
-                      className={`w-9 h-6 mx-auto rounded-md flex items-center justify-center font-mono text-xs transition-transform active:scale-95 ${outputBadgeClass}`}
+                      className={`w-9 h-6 mx-auto rounded-md flex items-center justify-center font-mono text-xs transition-transform active:scale-95 cursor-pointer ${outputBadgeClass}`}
                       title={`Click or press Space to cycle (0 -> 1 -> X). Current: ${row.output}`}
                     >
                       {row.output}
@@ -185,9 +185,9 @@ export const TruthTable: React.FC<TruthTableProps> = ({
       </div>
 
       {/* Footer shortcut helper */}
-      <div className="p-2 border-t border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-850/40 text-[10px] text-slate-500 dark:text-slate-400 flex items-center justify-between">
-        <span>Click or [0, 1, X, Space]</span>
-        <span>Arrows [↑, ↓]</span>
+      <div className="p-2.5 border-t border-[#202228] bg-[#15161a] text-[10px] text-[#9ca3af] flex items-center justify-between">
+        <span className="italic font-medium">Click or [0, 1, X, Space] to edit</span>
+        <span className="italic font-medium">Navigate with [↑, ↓]</span>
       </div>
     </div>
   );

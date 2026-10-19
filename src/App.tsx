@@ -15,7 +15,6 @@ export function App() {
   const [loading, setLoading] = useState<boolean>(true);
   const [activeTab, setActiveTab] = useState<"sop" | "pos">("sop");
   const [showGroups, setShowGroups] = useState<boolean>(true);
-  const [isDark, setIsDark] = useState<boolean>(true);
 
   // Cross-component interactive highlight states
   const [hoveredMinterm, setHoveredMinterm] = useState<number | null>(null);
@@ -25,14 +24,10 @@ export function App() {
   const [isHelpOpen, setIsHelpOpen] = useState<boolean>(false);
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState<boolean>(false);
 
-  // Sync theme class with document element
+  // Enforce dark mode permanently
   useEffect(() => {
-    if (isDark) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-  }, [isDark]);
+    document.documentElement.classList.add("dark");
+  }, []);
 
   // Load initial educational state
   const loadStateForVars = useCallback(async (v: number) => {
@@ -165,10 +160,10 @@ export function App() {
 
   if (!data && loading) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-slate-900 text-slate-100">
+      <div className="flex h-screen w-screen items-center justify-center bg-[#0a0a0c] text-[#f3f4f6]">
         <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-8 h-8 animate-spin text-cyan-500" />
-          <span className="text-sm font-medium">Initializing Karnaugh Studio...</span>
+          <Loader2 className="w-8 h-8 animate-spin text-[#a78bfa]" />
+          <span className="text-sm font-medium text-[#d1d5db]">Initializing Karnaugh Studio...</span>
         </div>
       </div>
     );
@@ -180,15 +175,13 @@ export function App() {
   );
 
   return (
-    <div className="flex flex-col h-screen w-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 overflow-hidden font-sans">
+    <div className="flex flex-col h-screen w-screen bg-[#0a0a0c] text-[#e4e4e7] overflow-hidden font-sans select-none">
       {/* Header */}
       <Header
         numVars={numVars}
         onSelectVars={handleSelectVars}
         showGroups={showGroups}
         onToggleShowGroups={() => setShowGroups((prev) => !prev)}
-        isDark={isDark}
-        onToggleTheme={() => setIsDark((prev) => !prev)}
         onReset={handleRequestReset}
         onOpenHelp={() => setIsHelpOpen(true)}
       />
@@ -231,7 +224,6 @@ export function App() {
               onSelectGroup={setSelectedGroupId}
               onToggleCell={handleToggleCell}
               onSetCellOutput={handleSetCellOutput}
-              isDark={isDark}
             />
           )}
         </section>
@@ -249,7 +241,6 @@ export function App() {
               onHoverGroup={setHoveredGroupId}
               onSelectGroup={setSelectedGroupId}
               onHoverMinterm={setHoveredMinterm}
-              isDark={isDark}
             />
           )}
         </section>

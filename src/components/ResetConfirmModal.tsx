@@ -33,46 +33,46 @@ export const ResetConfirmModal: React.FC<ResetConfirmModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 animate-in fade-in duration-150"
       onClick={onCancel}
     >
       <div
-        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full shadow-2xl overflow-hidden p-6 select-none"
+        className="bg-[#121316] border border-[#252732] rounded-2xl max-w-md w-full shadow-2xl overflow-hidden p-6 select-none"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start gap-3.5 mb-4">
-          <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950/80 border border-amber-200 dark:border-amber-800/60 flex items-center justify-center shrink-0 text-amber-600 dark:text-amber-400">
+          <div className="w-10 h-10 rounded-xl bg-[#f59e0b]/15 border border-[#f59e0b]/30 flex items-center justify-center shrink-0 text-[#fbbf24]">
             <AlertCircle className="w-5 h-5" />
           </div>
           <div className="flex-1">
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+            <h3 className="text-sm font-semibold text-[#f3f4f6]">
               Reset Truth Table to Default?
             </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-              This action will discard your custom output edits and reload the default educational demonstration for <b>{numVars} variables</b> ({1 << numVars} minterms).
+            <p className="text-xs text-[#cbd0dc] mt-1 leading-relaxed">
+              This action will discard your custom output edits and reload the default educational demonstration for <b className="text-[#ffffff]">{numVars} variables</b> ({1 << numVars} minterms).
             </p>
           </div>
           <button
             onClick={onCancel}
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="p-1.5 rounded-lg text-[#9ca3af] hover:text-[#f3f4f6] hover:bg-[#20222a] transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+        <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#202228]">
           <button
             ref={cancelBtnRef}
             type="button"
             onClick={onCancel}
-            className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-[#cbd0dc] hover:text-[#ffffff] bg-[#18191e] border border-[#262832] hover:bg-[#20222a] transition-colors cursor-pointer"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold bg-[#e11d48] hover:bg-[#be123c] text-white shadow-md transition-colors cursor-pointer"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>Reset to Default</span>

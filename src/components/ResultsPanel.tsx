@@ -13,7 +13,7 @@ interface ResultsPanelProps {
   onHoverGroup: (id: string | null) => void;
   onSelectGroup: (id: string | null) => void;
   onHoverMinterm: (m: number | null) => void;
-  isDark: boolean;
+  isDark?: boolean;
 }
 
 export const ResultsPanel: React.FC<ResultsPanelProps> = ({
@@ -26,7 +26,6 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
   onHoverGroup,
   onSelectGroup,
   onHoverMinterm,
-  isDark,
 }) => {
   const [copied, setCopied] = useState(false);
   const activeResult = activeTab === "sop" ? sop : pos;
@@ -43,19 +42,19 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
   );
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
+    <div className="flex flex-col h-full bg-[#121316] rounded-xl border border-[#202228] shadow-lg overflow-hidden select-none">
       {/* Tab Navigation */}
-      <div className="p-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-850/50">
-        <div className="flex items-center gap-1 bg-slate-200/80 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-300/60 dark:border-slate-700/60">
+      <div className="p-3 border-b border-[#202228] flex items-center justify-between bg-[#15161a]">
+        <div className="flex items-center gap-1 bg-[#18191e] p-0.5 rounded-lg border border-[#262832]">
           <button
             onClick={() => {
               onChangeTab("sop");
               onSelectGroup(null);
             }}
-            className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+            className={`px-3 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer ${
               activeTab === "sop"
-                ? "bg-white dark:bg-slate-700 text-cyan-700 dark:text-cyan-300 shadow-xs"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                ? "bg-[#282a33] text-[#c4b5fd] border border-[#7c3aed]/40 shadow-xs"
+                : "text-[#9ca3af] hover:text-[#f3f4f6] hover:bg-[#202228]"
             }`}
           >
             Sum of Products (SoP)
@@ -65,10 +64,10 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
               onChangeTab("pos");
               onSelectGroup(null);
             }}
-            className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+            className={`px-3 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer ${
               activeTab === "pos"
-                ? "bg-white dark:bg-slate-700 text-violet-700 dark:text-violet-300 shadow-xs"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                ? "bg-[#282a33] text-[#93c5fd] border border-[#3b82f6]/40 shadow-xs"
+                : "text-[#9ca3af] hover:text-[#f3f4f6] hover:bg-[#202228]"
             }`}
           >
             Product of Sums (PoS)
@@ -78,17 +77,17 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
         {/* Copy Button */}
         <button
           onClick={handleCopy}
-          className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-md text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors"
+          className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md text-[#cbd0dc] hover:text-[#ffffff] bg-[#1d1f25] hover:bg-[#272933] border border-[#2a2c36] transition-colors cursor-pointer"
           title="Copy plain text expression to clipboard"
         >
           {copied ? (
             <>
-              <Check className="w-3.5 h-3.5 text-emerald-500" />
-              <span className="text-emerald-600 dark:text-emerald-400">Copied</span>
+              <Check className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="text-emerald-400 font-semibold">Copied</span>
             </>
           ) : (
             <>
-              <Copy className="w-3.5 h-3.5" />
+              <Copy className="w-3.5 h-3.5 text-[#a78bfa]" />
               <span>Copy</span>
             </>
           )}
@@ -97,29 +96,29 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
 
       <div className="p-4 flex-1 overflow-y-auto space-y-4">
         {/* Minimized Expression Card */}
-        <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60">
+        <div className="p-4 rounded-xl bg-[#18191e] border border-[#252732] shadow-xs">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-[#8c919e]">
               Minimized Expression
             </span>
-            <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+            <div className="flex items-center gap-3 text-xs text-[#8c919e]">
               <span>
-                Terms: <b className="text-slate-900 dark:text-slate-100">{activeResult.term_count}</b>
+                Terms: <b className="text-[#ffffff] font-semibold">{activeResult.term_count}</b>
               </span>
               <span>
-                Literals: <b className="text-slate-900 dark:text-slate-100">{activeResult.literal_count}</b>
+                Literals: <b className="text-[#ffffff] font-semibold">{activeResult.literal_count}</b>
               </span>
             </div>
           </div>
 
           {/* Rendered Math Formula with Color Pill Association */}
           <div className="flex items-center flex-wrap gap-2 py-2">
-            <span className="text-xl font-mono font-bold text-slate-800 dark:text-slate-200">
+            <span className="text-xl font-mono font-bold text-[#f4f4f5]">
               F =
             </span>
 
             {activeResult.groups.length === 0 ? (
-              <span className="text-2xl font-mono font-bold text-slate-900 dark:text-slate-100">
+              <span className="text-2xl font-mono font-bold text-[#ffffff]">
                 {activeResult.expression_formatted}
               </span>
             ) : (
@@ -129,13 +128,10 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
                 const isHovered = hoveredGroupId === group.id;
                 const isHighlighted = isSelected || isHovered;
 
-                const bg = isDark ? color.pillBgDark : color.pillBgLight;
-                const textCol = isDark ? color.pillTextDark : color.pillTextLight;
-
                 return (
                   <React.Fragment key={group.id}>
                     {idx > 0 && activeTab === "sop" && (
-                      <span className="text-lg font-mono text-slate-400 font-bold px-0.5">
+                      <span className="text-lg font-mono text-[#a78bfa] font-bold px-1">
                         +
                       </span>
                     )}
@@ -145,14 +141,14 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
                       onMouseEnter={() => onHoverGroup(group.id)}
                       onMouseLeave={() => onHoverGroup(null)}
                       style={{
-                        backgroundColor: bg,
+                        backgroundColor: color.pillBgDark,
                         borderColor: color.border,
-                        color: textCol,
+                        color: color.pillTextDark,
                       }}
-                      className={`px-3 py-1.5 rounded-lg border text-base font-mono font-bold tracking-wide transition-all cursor-pointer shadow-2xs ${
+                      className={`px-3 py-1.5 rounded-lg border text-base font-mono font-bold tracking-wide transition-all cursor-pointer shadow-xs ${
                         isHighlighted
-                          ? "ring-2 ring-offset-1 ring-cyan-500 scale-105"
-                          : "hover:scale-102"
+                          ? "ring-2 ring-offset-2 ring-offset-[#18191e] ring-[#7c3aed] scale-105"
+                          : "hover:scale-102 hover:brightness-110"
                       }`}
                       title={`Group ${group.id}: covered minterms m(${group.covered_minterms.join(
                         ", "
@@ -169,18 +165,18 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
 
         {/* Selected Implicants / Groups List */}
         <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-[#9ca3af] mb-2.5">
             Covering Implicants ({activeResult.groups.length})
           </h3>
 
           {activeResult.groups.length === 0 ? (
-            <div className="p-3.5 text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/30 rounded-lg border border-slate-200/60 dark:border-slate-800">
+            <div className="p-3.5 text-xs text-[#d1d5db] bg-[#18191e] rounded-xl border border-[#252732] leading-relaxed">
               {activeResult.is_all_dont_care ? (
                 <div>
-                  <div className="font-semibold text-amber-700 dark:text-amber-400 mb-1 flex items-center gap-1.5">
+                  <div className="font-semibold text-[#fbbf24] mb-1 flex items-center gap-1.5">
                     <span>Unspecified Function (All Don't-Care)</span>
                   </div>
-                  <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
+                  <p className="text-[#cbd0dc] leading-relaxed">
                     All input combinations are don't-care conditions (X). Under the documented deterministic convention, all outputs evaluate to constant 0 (F = 0).
                   </p>
                 </div>
@@ -206,8 +202,8 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
                     onMouseLeave={() => onHoverGroup(null)}
                     className={`p-3 rounded-lg border transition-all cursor-pointer ${
                       isHighlighted
-                        ? "bg-slate-100/90 dark:bg-slate-800 border-cyan-500 ring-1 ring-cyan-500/50"
-                        : "bg-slate-50/70 dark:bg-slate-850/60 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
+                        ? "bg-[#20222a] border-[#7c3aed] ring-1 ring-[#7c3aed]/50 shadow-sm"
+                        : "bg-[#18191e] border-[#242630] hover:border-[#353846] hover:bg-[#1c1d24]"
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1.5">
@@ -221,25 +217,25 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
                         >
                           {group.id}
                         </span>
-                        <span className="font-mono font-bold text-sm text-slate-800 dark:text-slate-200">
+                        <span className="font-mono font-bold text-sm text-[#ffffff]">
                           {group.term_formatted}
                         </span>
                       </div>
 
                       <div className="flex items-center gap-2">
                         {group.is_essential ? (
-                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#10b981]/15 text-[#6ee7b7] border border-[#10b981]/35">
                             Essential
                           </span>
                         ) : (
-                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#242630] text-[#cbd0dc] border border-[#303240]">
                             Minimal Cover
                           </span>
                         )}
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                    <div className="flex items-center gap-1.5 text-xs text-[#9ca3af]">
                       <span>Covered minterms:</span>
                       <div className="flex flex-wrap gap-1">
                         {group.covered_minterms.map((m) => (
@@ -247,7 +243,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
                             key={m}
                             onMouseEnter={() => onHoverMinterm(m)}
                             onMouseLeave={() => onHoverMinterm(null)}
-                            className="font-mono text-[11px] px-1 rounded bg-white dark:bg-slate-750 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-cyan-500"
+                            className="font-mono text-[11px] px-1.5 py-0.5 rounded bg-[#131417] border border-[#262832] text-[#cbd0dc] hover:border-[#7c3aed] hover:text-[#ffffff] transition-colors"
                           >
                             m{m}
                           </span>
@@ -263,24 +259,24 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
 
         {/* Educational Context Breakdown */}
         {selectedGroup && (
-          <div className="p-3.5 rounded-xl bg-cyan-50/60 dark:bg-cyan-950/30 border border-cyan-200 dark:border-cyan-900/60 text-xs">
-            <div className="flex items-center gap-2 mb-1 text-cyan-800 dark:text-cyan-300 font-semibold">
-              <BookOpen className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+          <div className="p-4 rounded-xl bg-[#1b1929] border border-[#7c3aed]/40 text-xs shadow-md">
+            <div className="flex items-center gap-2 mb-1.5 text-[#c4b5fd] font-semibold">
+              <BookOpen className="w-4 h-4 text-[#a78bfa]" />
               <span>Educational Insight for {selectedGroup.id} ({selectedGroup.term_formatted})</span>
             </div>
-            <p className="text-slate-700 dark:text-slate-300 leading-relaxed mb-2">
+            <p className="text-[#e4e4e7] leading-relaxed mb-3">
               {selectedGroup.explanation}
             </p>
-            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-cyan-200/60 dark:border-cyan-900/40 text-[11px]">
+            <div className="grid grid-cols-2 gap-2 pt-2.5 border-t border-[#7c3aed]/25 text-[11px]">
               <div>
-                <span className="text-slate-500 dark:text-slate-400">Eliminated ({selectedGroup.eliminated_vars.length}):</span>{" "}
-                <b className="font-mono text-slate-800 dark:text-slate-200">
+                <span className="text-[#9ca3af]">Eliminated ({selectedGroup.eliminated_vars.length}):</span>{" "}
+                <b className="font-mono text-[#ffffff] font-semibold">
                   {selectedGroup.eliminated_vars.join(", ") || "None"}
                 </b>
               </div>
               <div>
-                <span className="text-slate-500 dark:text-slate-400">Retained:</span>{" "}
-                <b className="font-mono text-slate-800 dark:text-slate-200">
+                <span className="text-[#9ca3af]">Retained:</span>{" "}
+                <b className="font-mono text-[#ffffff] font-semibold">
                   {selectedGroup.retained_vars.join(", ") || "All"}
                 </b>
               </div>

@@ -135,7 +135,7 @@ export const GroupOverlay: React.FC<GroupOverlayProps> = ({
                       fill={color.badgeText}
                       fontSize="9"
                       fontWeight="700"
-                      fontFamily="ui-sans-serif, system-ui, sans-serif"
+                      fontFamily="Inter, -apple-system, BlinkMacSystemFont, sans-serif"
                       textAnchor="middle"
                     >
                       {group.id}
