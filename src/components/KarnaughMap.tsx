@@ -1,7 +1,6 @@
 import React from "react";
 import { ImplicantGroup, KMapGrid, OutputValue } from "../types/kmap";
 import { GroupOverlay } from "./GroupOverlay";
-import { getGroupColor } from "../utils/colors";
 
 interface KarnaughMapProps {
   grid: KMapGrid;
@@ -31,11 +30,9 @@ export const KarnaughMap: React.FC<KarnaughMapProps> = ({
   outputNames,
   onSelectOutput,
   hoveredMinterm,
-  selectedMinterm,
   hoveredGroupId,
   selectedGroupId,
   onHoverMinterm,
-  onSelectMinterm,
   onHoverGroup,
   onSelectGroup,
   onToggleCell,
@@ -55,11 +52,6 @@ export const KarnaughMap: React.FC<KarnaughMapProps> = ({
   const colVarsLabel = grid.col_vars.some((v) => v.length > 1)
     ? grid.col_vars.join(" ")
     : grid.col_vars.join("");
-
-  const activeGroup = groups.find(
-    (g) => g.id === (hoveredGroupId || selectedGroupId)
-  );
-  const activeColor = activeGroup ? getGroupColor(activeGroup.color_index ?? 0) : null;
 
   const handleCellKeyDown = (
     e: React.KeyboardEvent,
@@ -251,10 +243,6 @@ export const KarnaughMap: React.FC<KarnaughMapProps> = ({
               {grid.cells.map((rowCells, rIdx) =>
                 rowCells.map((cell, cIdx) => {
                   const isHovered = hoveredMinterm === cell.minterm;
-                  const isSelected = selectedMinterm === cell.minterm;
-                  const isGroupCovered = activeGroup?.covered_minterms.includes(
-                    cell.minterm
-                  );
 
                   let valueClass = "text-[#a1a1aa] font-semibold";
                   let bgClass = "bg-[#15161b]";
@@ -273,14 +261,8 @@ export const KarnaughMap: React.FC<KarnaughMapProps> = ({
                     height: cellSize,
                   };
 
-                  if (isSelected) {
-                    borderClass = "ring-2 ring-[#7c3aed] border-[#7c3aed] bg-[#222432] z-20 shadow-[0_0_16px_rgba(124,58,237,0.4)]";
-                  } else if (isHovered) {
-                    borderClass = "border-[#8b5cf6] bg-[#1a1c26] z-20 shadow-[0_0_12px_rgba(139,92,246,0.25)]";
-                  } else if (isGroupCovered && activeColor) {
-                    borderClass = "z-15 shadow-sm";
-                    customStyle.borderColor = activeColor.border;
-                    customStyle.backgroundColor = activeColor.pillBgDark;
+                  if (isHovered) {
+                    borderClass = "border-[#8b5cf6] bg-[#1c1e28] z-20 shadow-[0_0_10px_rgba(139,92,246,0.3)]";
                   }
 
                   return (
@@ -289,7 +271,6 @@ export const KarnaughMap: React.FC<KarnaughMapProps> = ({
                       key={`cell-${rIdx}-${cIdx}`}
                       tabIndex={0}
                       onClick={() => {
-                        onSelectMinterm(cell.minterm);
                         onToggleCell(cell.minterm);
                       }}
                       onKeyDown={(e) =>
@@ -298,7 +279,7 @@ export const KarnaughMap: React.FC<KarnaughMapProps> = ({
                       onMouseEnter={() => onHoverMinterm(cell.minterm)}
                       onMouseLeave={() => onHoverMinterm(null)}
                       style={customStyle}
-                      className={`relative flex flex-col items-center justify-center rounded-xl border transition-all cursor-pointer select-none outline-hidden focus:ring-2 focus:ring-[#7c3aed] ${bgClass} ${borderClass} hover:shadow-sm active:scale-95`}
+                      className={`relative flex flex-col items-center justify-center rounded-xl border transition-colors duration-150 cursor-pointer select-none outline-none focus:outline-none focus:ring-0 ${bgClass} ${borderClass} hover:border-[#8b5cf6] hover:bg-[#1c1e28] active:scale-95`}
                       title={`Minterm m${cell.minterm} (${cell.binary}) = ${cell.output}. Press 0, 1, X, or Space to edit.`}
                     >
                       {/* Secondary Minterm Index Label */}
