@@ -7,9 +7,14 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build-windows:
     runs-on: windows-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout repository
@@ -44,8 +49,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: v__VERSION__
-          releaseName: 'Karnaugh Studio v__VERSION__'
+          tagName: ${{ github.event_name != 'pull_request' && 'v__VERSION__' || '' }}
+          releaseName: ${{ github.event_name != 'pull_request' && 'Karnaugh Studio v__VERSION__' || '' }}
           releaseBody: 'Release build of Karnaugh Studio with Windows NSIS installer.'
           releaseDraft: false
           prerelease: false
