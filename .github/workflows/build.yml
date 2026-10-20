@@ -3,6 +3,7 @@ name: Release Build
 on:
   push:
     branches: [ main, master ]
+    tags: [ 'v*' ]
   pull_request:
     branches: [ main, master ]
   workflow_dispatch:
@@ -45,12 +46,12 @@ jobs:
         run: npm run build
 
       - name: Build Tauri desktop application & NSIS installer
-        uses: tauri-apps/tauri-action@v0
+        uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: ${{ github.event_name != 'pull_request' && 'v__VERSION__' || '' }}
-          releaseName: ${{ github.event_name != 'pull_request' && 'Karnaugh Studio v__VERSION__' || '' }}
+          tagName: ${{ github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v__VERSION__') || '' }}
+          releaseName: ${{ github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v') && format('Karnaugh Studio {0}', github.ref_name) || 'Karnaugh Studio v__VERSION__') || '' }}
           releaseBody: 'Release build of Karnaugh Studio with Windows NSIS installer.'
           releaseDraft: false
           prerelease: false
@@ -63,3 +64,4 @@ jobs:
             src-tauri/target/release/bundle/nsis/*.exe
             src-tauri/target/release/bundle/msi/*.msi
             src-tauri/target/release/*.exe
+          if-no-files-found: error
